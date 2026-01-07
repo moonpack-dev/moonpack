@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir } from 'node:fs/promises';
 
 export async function fileExists(path: string): Promise<boolean> {
   return Bun.file(path).exists();

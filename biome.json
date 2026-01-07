@@ -23,16 +23,18 @@
         "useTemplate": "off"
       },
       "suspicious": {
-        "noAssignInExpressions": "off"
+        "noAssignInExpressions": "off",
+        "noExplicitAny": "error"
       },
       "correctness": {
-        "noUnusedImports": "warn"
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn"
       }
     }
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "double",
+      "quoteStyle": "single",
       "trailingCommas": "es5"
     }
   }

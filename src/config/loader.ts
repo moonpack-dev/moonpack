@@ -1,8 +1,8 @@
-import { join } from "node:path";
-import { MoonpackError } from "../utils/errors.ts";
-import { type MoonpackConfig, type RawConfig, validateConfig } from "./schema.ts";
+import { join } from 'node:path';
+import { MoonpackError } from '../utils/errors.ts';
+import { type MoonpackConfig, type RawConfig, validateConfig } from './schema.ts';
 
-const CONFIG_FILENAME = "moonpack.json";
+const CONFIG_FILENAME = 'moonpack.json';
 
 export interface LoadedConfig {
   config: MoonpackConfig;
@@ -18,7 +18,7 @@ export async function loadConfig(directory: string): Promise<LoadedConfig> {
   if (!(await file.exists())) {
     throw new MoonpackError(
       `Could not find ${CONFIG_FILENAME} in ${directory}`,
-      "CONFIG_NOT_FOUND",
+      'CONFIG_NOT_FOUND',
       { directory, configPath }
     );
   }
@@ -29,7 +29,7 @@ export async function loadConfig(directory: string): Promise<LoadedConfig> {
   } catch (error) {
     throw new MoonpackError(
       `Failed to parse ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
-      "CONFIG_PARSE_ERROR",
+      'CONFIG_PARSE_ERROR',
       { configPath, error }
     );
   }

@@ -1,6 +1,6 @@
-import type { MoonpackConfig } from "../config/schema.ts";
-import type { DependencyGraph } from "./graph.ts";
-import { transformRequiresToLoad } from "./parser.ts";
+import type { MoonpackConfig } from '../config/schema.ts';
+import type { DependencyGraph } from './graph.ts';
+import { transformRequiresToLoad } from './parser.ts';
 
 export interface GenerateOptions {
   graph: DependencyGraph;
@@ -17,9 +17,9 @@ export function generateBundle(options: GenerateOptions): string {
   const lines: string[] = [];
 
   lines.push(generateHeader(config));
-  lines.push("");
+  lines.push('');
   lines.push(generateModuleLoader());
-  lines.push("");
+  lines.push('');
 
   const nonEntryModules = graph.moduleOrder.filter((name) => name !== graph.entryPoint.moduleName);
 
@@ -28,7 +28,7 @@ export function generateBundle(options: GenerateOptions): string {
       const node = graph.modules.get(moduleName);
       if (node) {
         lines.push(generateModuleWrapper(moduleName, node.source, bundledModuleNames));
-        lines.push("");
+        lines.push('');
       }
     }
   }
@@ -39,11 +39,11 @@ export function generateBundle(options: GenerateOptions): string {
   );
   lines.push(transformedEntrySource);
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 function generateHeader(config: MoonpackConfig): string {
-  const versionPart = config.version ? ` v${config.version}` : "";
+  const versionPart = config.version ? ` v${config.version}` : '';
   return `-- ${config.name}${versionPart}
 -- Built with moonpack`;
 }
@@ -68,7 +68,7 @@ function generateModuleWrapper(
   bundledModules: Set<string>
 ): string {
   const transformedSource = transformRequiresToLoad(source, bundledModules);
-  const indentedSource = indentCode(transformedSource, "    ");
+  const indentedSource = indentCode(transformedSource, '    ');
 
   return `__modules["${moduleName}"] = function()
 ${indentedSource}
@@ -77,7 +77,7 @@ end`;
 
 function indentCode(code: string, indent: string): string {
   return code
-    .split("\n")
+    .split('\n')
     .map((line) => (line.length > 0 ? indent + line : line))
-    .join("\n");
+    .join('\n');
 }

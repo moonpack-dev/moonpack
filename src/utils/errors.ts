@@ -5,7 +5,7 @@ export class MoonpackError extends Error {
     public readonly details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = "MoonpackError";
+    this.name = 'MoonpackError';
   }
 }
 

@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { fileExists } from "../utils/fs.ts";
+import { join } from 'node:path';
+import { fileExists } from '../utils/fs.ts';
 
 export interface ResolveContext {
   sourceRoot: string;
@@ -29,7 +29,7 @@ export async function resolveModulePath(
     return { resolved: null, isExternal: true };
   }
 
-  const pathFromDots = moduleName.replace(/\./g, "/");
+  const pathFromDots = moduleName.replace(/\./g, '/');
 
   const directPath = join(context.sourceRoot, `${pathFromDots}.lua`);
   if (await fileExists(directPath)) {
@@ -39,7 +39,7 @@ export async function resolveModulePath(
     };
   }
 
-  const initPath = join(context.sourceRoot, pathFromDots, "init.lua");
+  const initPath = join(context.sourceRoot, pathFromDots, 'init.lua');
   if (await fileExists(initPath)) {
     return {
       resolved: { moduleName, filePath: initPath },
@@ -52,7 +52,7 @@ export async function resolveModulePath(
 
 function isExternalPattern(moduleName: string, external: Set<string>): boolean {
   for (const ext of external) {
-    if (moduleName.startsWith(ext + ".")) {
+    if (moduleName.startsWith(ext + '.')) {
       return true;
     }
   }
@@ -61,10 +61,10 @@ function isExternalPattern(moduleName: string, external: Set<string>): boolean {
 
 export function getModuleNameFromPath(filePath: string, sourceRoot: string): string {
   const relative = filePath
-    .replace(sourceRoot, "")
-    .replace(/^[/\\]/, "")
-    .replace(/\.lua$/, "")
-    .replace(/[/\\]init$/, "");
+    .replace(sourceRoot, '')
+    .replace(/^[/\\]/, '')
+    .replace(/\.lua$/, '')
+    .replace(/[/\\]init$/, '');
 
-  return relative.replace(/[/\\]/g, ".");
+  return relative.replace(/[/\\]/g, '.');
 }

@@ -1,8 +1,8 @@
-import { dirname, isAbsolute, join } from "node:path";
-import { buildDependencyGraph, generateBundle } from "../bundler/index.ts";
-import { loadConfig } from "../config/loader.ts";
-import { ensureDirectory, writeTextFile } from "../utils/fs.ts";
-import type { Logger } from "../utils/logger.ts";
+import { dirname, isAbsolute, join } from 'node:path';
+import { buildDependencyGraph, generateBundle } from '../bundler/index.ts';
+import { loadConfig } from '../config/loader.ts';
+import { ensureDirectory, writeTextFile } from '../utils/fs.ts';
+import type { Logger } from '../utils/logger.ts';
 
 export interface BuildResult {
   success: boolean;
@@ -19,7 +19,7 @@ export interface BuildOptions {
 export async function build(options: BuildOptions): Promise<BuildResult> {
   const { cwd, logger } = options;
 
-  logger.info("Loading configuration...");
+  logger.info('Loading configuration...');
   const { config, projectRoot } = await loadConfig(cwd);
 
   const entryPath = join(projectRoot, config.entry);
@@ -35,7 +35,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
   });
 
   const moduleCount = graph.modules.size;
-  logger.info(`Resolved ${moduleCount} module${moduleCount === 1 ? "" : "s"}`);
+  logger.info(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
 
   const bundle = generateBundle({ graph, config });
 

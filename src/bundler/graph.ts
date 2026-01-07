@@ -1,7 +1,7 @@
-import { MoonpackError } from "../utils/errors.ts";
-import { readTextFile } from "../utils/fs.ts";
-import { parseRequireStatements, type RequireStatement } from "./parser.ts";
-import { getModuleNameFromPath, type ResolveContext, resolveModulePath } from "./resolver.ts";
+import { MoonpackError } from '../utils/errors.ts';
+import { readTextFile } from '../utils/fs.ts';
+import { parseRequireStatements, type RequireStatement } from './parser.ts';
+import { getModuleNameFromPath, type ResolveContext, resolveModulePath } from './resolver.ts';
 
 export interface ModuleNode {
   moduleName: string;
@@ -70,7 +70,7 @@ async function processModuleDependencies(
     if (result.resolved === null) {
       throw new MoonpackError(
         `Cannot resolve module '${req.moduleName}' required at ${node.filePath}:${req.line}`,
-        "MODULE_NOT_FOUND",
+        'MODULE_NOT_FOUND',
         {
           moduleName: req.moduleName,
           requiredBy: node.filePath,
@@ -141,13 +141,13 @@ function detectCircularDependencies(modules: Map<string, ModuleNode>): void {
   }
 
   if (foundCycles.length > 0) {
-    const cycleStrings = foundCycles.map((cycle) => cycle.join(" → "));
+    const cycleStrings = foundCycles.map((cycle) => cycle.join(' → '));
     const message =
       foundCycles.length === 1
         ? `Circular dependency detected: ${cycleStrings[0]}`
-        : `Circular dependencies detected:\n  ${cycleStrings.join("\n  ")}`;
+        : `Circular dependencies detected:\n  ${cycleStrings.join('\n  ')}`;
 
-    throw new MoonpackError(message, "CIRCULAR_DEPENDENCY", {
+    throw new MoonpackError(message, 'CIRCULAR_DEPENDENCY', {
       cycles: foundCycles,
     });
   }
@@ -156,7 +156,7 @@ function detectCircularDependencies(modules: Map<string, ModuleNode>): void {
 function normalizeCycleKey(cycle: string[]): string {
   const withoutLast = cycle.slice(0, -1);
   const sorted = [...withoutLast].sort();
-  return sorted.join(",");
+  return sorted.join(',');
 }
 
 function topologicalSort(modules: Map<string, ModuleNode>, entryModuleName: string): string[] {

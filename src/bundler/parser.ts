@@ -3,7 +3,7 @@ export interface RequireStatement {
   line: number;
   column: number;
   raw: string;
-  type: "standard" | "compact" | "pcall";
+  type: 'standard' | 'compact' | 'pcall';
 }
 
 interface StringSpan {
@@ -20,23 +20,23 @@ interface RequireMatch {
   moduleName: string;
   raw: string;
   index: number;
-  type: "standard" | "compact" | "pcall";
+  type: 'standard' | 'compact' | 'pcall';
 }
 
 const REQUIRE_PATTERNS = [
   {
     pattern: /require\s*\(\s*(["'])([^"']+)\1\s*\)/g,
-    type: "standard" as const,
+    type: 'standard' as const,
     moduleGroup: 2,
   },
   {
     pattern: /require\s*(["'])([^"']+)\1/g,
-    type: "compact" as const,
+    type: 'compact' as const,
     moduleGroup: 2,
   },
   {
     pattern: /pcall\s*\(\s*require\s*,\s*(["'])([^"']+)\1\s*\)/g,
-    type: "pcall" as const,
+    type: 'pcall' as const,
     moduleGroup: 2,
   },
 ];
@@ -60,7 +60,7 @@ export function parseRequireStatements(source: string): RequireStatement[] {
 
       const moduleName = match[moduleGroup];
       if (moduleName !== undefined) {
-        if (type === "compact" && isPartOfStandardRequire(source, match.index, match[0])) {
+        if (type === 'compact' && isPartOfStandardRequire(source, match.index, match[0])) {
           continue;
         }
 
@@ -132,7 +132,7 @@ function findAllStringSpans(source: string): StringSpan[] {
       i++;
 
       while (i < source.length) {
-        if (source[i] === "\\") {
+        if (source[i] === '\\') {
           i += 2;
           continue;
         }
@@ -142,7 +142,7 @@ function findAllStringSpans(source: string): StringSpan[] {
         }
         i++;
       }
-    } else if (char === "[") {
+    } else if (char === '[') {
       const bracketMatch = matchLongBracket(source, i);
       if (bracketMatch) {
         spans.push({ start: i, end: bracketMatch.end });
@@ -156,20 +156,20 @@ function findAllStringSpans(source: string): StringSpan[] {
 }
 
 function matchLongBracket(source: string, start: number): { end: number } | null {
-  if (source[start] !== "[") return null;
+  if (source[start] !== '[') return null;
 
   let level = 0;
   let i = start + 1;
 
-  while (i < source.length && source[i] === "=") {
+  while (i < source.length && source[i] === '=') {
     level++;
     i++;
   }
 
-  if (source[i] !== "[") return null;
+  if (source[i] !== '[') return null;
   i++;
 
-  const closePattern = "]" + "=".repeat(level) + "]";
+  const closePattern = ']' + '='.repeat(level) + ']';
 
   while (i < source.length) {
     const closeIndex = source.indexOf(closePattern, i);
@@ -185,7 +185,7 @@ function findAllCommentSpans(source: string, stringSpans: StringSpan[]): Comment
   let i = 0;
 
   while (i < source.length - 1) {
-    if (source[i] === "-" && source[i + 1] === "-") {
+    if (source[i] === '-' && source[i + 1] === '-') {
       if (isInsideRange(i, stringSpans)) {
         i++;
         continue;
@@ -193,7 +193,7 @@ function findAllCommentSpans(source: string, stringSpans: StringSpan[]): Comment
 
       const commentStart = i;
 
-      if (source[i + 2] === "[") {
+      if (source[i + 2] === '[') {
         const bracketMatch = matchLongBracket(source, i + 2);
         if (bracketMatch) {
           spans.push({ start: commentStart, end: bracketMatch.end });
@@ -202,7 +202,7 @@ function findAllCommentSpans(source: string, stringSpans: StringSpan[]): Comment
         }
       }
 
-      const lineEnd = source.indexOf("\n", i);
+      const lineEnd = source.indexOf('\n', i);
       const end = lineEnd === -1 ? source.length - 1 : lineEnd - 1;
       spans.push({ start: commentStart, end });
       i = lineEnd === -1 ? source.length : lineEnd + 1;
@@ -228,7 +228,7 @@ function getLineAndColumn(source: string, position: number): { line: number; col
   let lastNewline = -1;
 
   for (let i = 0; i < position; i++) {
-    if (source[i] === "\n") {
+    if (source[i] === '\n') {
       line++;
       lastNewline = i;
     }
@@ -261,7 +261,7 @@ export function transformRequiresToLoad(source: string, bundledModules: Set<stri
         continue;
       }
 
-      if (type === "compact" && isPartOfStandardRequire(source, match.index, match[0])) {
+      if (type === 'compact' && isPartOfStandardRequire(source, match.index, match[0])) {
         continue;
       }
 
@@ -282,9 +282,9 @@ export function transformRequiresToLoad(source: string, bundledModules: Set<stri
       }
 
       let replacement: string;
-      if (type === "pcall") {
+      if (type === 'pcall') {
         replacement = `pcall(__load, ${quote}${moduleName}${quote})`;
-      } else if (type === "compact") {
+      } else if (type === 'compact') {
         replacement = `__load(${quote}${moduleName}${quote})`;
       } else {
         replacement = `__load(${quote}${moduleName}${quote})`;

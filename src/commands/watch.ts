@@ -1,9 +1,9 @@
-import { watch } from "node:fs";
-import { dirname, isAbsolute, join } from "node:path";
-import { loadConfig } from "../config/loader.ts";
-import { formatError } from "../utils/errors.ts";
-import type { Logger } from "../utils/logger.ts";
-import { build } from "./build.ts";
+import { watch } from 'node:fs';
+import { dirname, isAbsolute, join } from 'node:path';
+import { loadConfig } from '../config/loader.ts';
+import { formatError } from '../utils/errors.ts';
+import type { Logger } from '../utils/logger.ts';
+import { build } from './build.ts';
 
 export interface WatchOptions {
   cwd: string;
@@ -21,13 +21,13 @@ export async function watchProject(options: WatchOptions): Promise<void> {
   await deployReloader(outDir, config.name, logger);
 
   logger.info(`Watching ${sourceDir} for changes...`);
-  logger.info("Press Ctrl+C to stop\n");
+  logger.info('Press Ctrl+C to stop\n');
 
   await runBuild(options, logger);
 
   let debounce: Timer | null = null;
   const watcher = watch(sourceDir, { recursive: true }, (_event, filename) => {
-    if (!filename?.endsWith(".lua")) return;
+    if (!filename?.endsWith('.lua')) return;
 
     if (debounce) clearTimeout(debounce);
     debounce = setTimeout(async () => {
@@ -36,10 +36,10 @@ export async function watchProject(options: WatchOptions): Promise<void> {
     }, 100);
   });
 
-  process.on("SIGINT", async () => {
+  process.on('SIGINT', async () => {
     watcher.close();
     await cleanupReloader(outDir, config.name, logger);
-    logger.info("\nStopped watching.");
+    logger.info('\nStopped watching.');
     process.exit(0);
   });
 
@@ -65,9 +65,9 @@ async function cleanupReloader(outDir: string, scriptName: string, logger: Logge
   const reloaderPath = join(outDir, `.${scriptName}-reloader.lua`);
 
   try {
-    const { unlink } = await import("node:fs/promises");
+    const { unlink } = await import('node:fs/promises');
     await unlink(reloaderPath).catch(() => {});
-    logger.info("Cleaned up reloader");
+    logger.info('Cleaned up reloader');
   } catch {}
 }
 

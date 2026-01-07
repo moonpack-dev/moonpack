@@ -1,65 +1,65 @@
-import { describe, expect, test } from "bun:test";
-import { MoonpackError } from "../utils/errors.ts";
-import { validateConfig } from "./schema.ts";
+import { describe, expect, test } from 'bun:test';
+import { MoonpackError } from '../utils/errors.ts';
+import { validateConfig } from './schema.ts';
 
-describe("validateConfig", () => {
-  const configPath = "/test/moonpack.json";
+describe('validateConfig', () => {
+  const configPath = '/test/moonpack.json';
 
-  describe("valid configs", () => {
-    test("accepts minimal valid config", () => {
-      const raw = { name: "myproject", entry: "src/main.lua" };
+  describe('valid configs', () => {
+    test('accepts minimal valid config', () => {
+      const raw = { name: 'myproject', entry: 'src/main.lua' };
       const result = validateConfig(raw, configPath);
-      expect(result.name).toBe("myproject");
-      expect(result.entry).toBe("src/main.lua");
-      expect(result.outDir).toBe("dist");
+      expect(result.name).toBe('myproject');
+      expect(result.entry).toBe('src/main.lua');
+      expect(result.outDir).toBe('dist');
       expect(result.external).toEqual([]);
       expect(result.version).toBeUndefined();
     });
 
-    test("accepts full config with all fields", () => {
+    test('accepts full config with all fields', () => {
       const raw = {
-        name: "myproject",
-        version: "1.0.0",
-        entry: "src/main.lua",
-        outDir: "build",
-        external: ["samp", "imgui"],
+        name: 'myproject',
+        version: '1.0.0',
+        entry: 'src/main.lua',
+        outDir: 'build',
+        external: ['samp', 'imgui'],
       };
       const result = validateConfig(raw, configPath);
-      expect(result.name).toBe("myproject");
-      expect(result.version).toBe("1.0.0");
-      expect(result.entry).toBe("src/main.lua");
-      expect(result.outDir).toBe("build");
-      expect(result.external).toEqual(["samp", "imgui"]);
+      expect(result.name).toBe('myproject');
+      expect(result.version).toBe('1.0.0');
+      expect(result.entry).toBe('src/main.lua');
+      expect(result.outDir).toBe('build');
+      expect(result.external).toEqual(['samp', 'imgui']);
     });
 
-    test("applies default outDir when not provided", () => {
-      const raw = { name: "myproject", entry: "main.lua" };
+    test('applies default outDir when not provided', () => {
+      const raw = { name: 'myproject', entry: 'main.lua' };
       const result = validateConfig(raw, configPath);
-      expect(result.outDir).toBe("dist");
+      expect(result.outDir).toBe('dist');
     });
 
-    test("applies default external when not provided", () => {
-      const raw = { name: "myproject", entry: "main.lua" };
+    test('applies default external when not provided', () => {
+      const raw = { name: 'myproject', entry: 'main.lua' };
       const result = validateConfig(raw, configPath);
       expect(result.external).toEqual([]);
     });
   });
 
-  describe("missing required fields", () => {
-    test("throws error when name is missing", () => {
-      const raw = { entry: "main.lua" };
+  describe('missing required fields', () => {
+    test('throws error when name is missing', () => {
+      const raw = { entry: 'main.lua' };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
         validateConfig(raw, configPath);
       } catch (e) {
         expect(e).toBeInstanceOf(MoonpackError);
-        expect((e as MoonpackError).code).toBe("INVALID_CONFIG");
+        expect((e as MoonpackError).code).toBe('INVALID_CONFIG');
         expect((e as MoonpackError).message).toContain("'name' is required");
       }
     });
 
-    test("throws error when entry is missing", () => {
-      const raw = { name: "myproject" };
+    test('throws error when entry is missing', () => {
+      const raw = { name: 'myproject' };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
         validateConfig(raw, configPath);
@@ -69,7 +69,7 @@ describe("validateConfig", () => {
       }
     });
 
-    test("throws error with multiple missing fields", () => {
+    test('throws error with multiple missing fields', () => {
       const raw = {};
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
@@ -82,29 +82,29 @@ describe("validateConfig", () => {
     });
   });
 
-  describe("invalid types", () => {
-    test("throws error when name is not a string", () => {
-      const raw = { name: 123, entry: "main.lua" };
+  describe('invalid types', () => {
+    test('throws error when name is not a string', () => {
+      const raw = { name: 123, entry: 'main.lua' };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
     });
 
-    test("throws error when name is empty string", () => {
-      const raw = { name: "", entry: "main.lua" };
+    test('throws error when name is empty string', () => {
+      const raw = { name: '', entry: 'main.lua' };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
     });
 
-    test("throws error when entry is not a string", () => {
-      const raw = { name: "myproject", entry: 123 };
+    test('throws error when entry is not a string', () => {
+      const raw = { name: 'myproject', entry: 123 };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
     });
 
-    test("throws error when entry is empty string", () => {
-      const raw = { name: "myproject", entry: "" };
+    test('throws error when entry is empty string', () => {
+      const raw = { name: 'myproject', entry: '' };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
     });
 
-    test("throws error when version is not a string", () => {
-      const raw = { name: "myproject", entry: "main.lua", version: 123 };
+    test('throws error when version is not a string', () => {
+      const raw = { name: 'myproject', entry: 'main.lua', version: 123 };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
         validateConfig(raw, configPath);
@@ -113,8 +113,8 @@ describe("validateConfig", () => {
       }
     });
 
-    test("throws error when outDir is not a string", () => {
-      const raw = { name: "myproject", entry: "main.lua", outDir: 123 };
+    test('throws error when outDir is not a string', () => {
+      const raw = { name: 'myproject', entry: 'main.lua', outDir: 123 };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
         validateConfig(raw, configPath);
@@ -123,8 +123,8 @@ describe("validateConfig", () => {
       }
     });
 
-    test("throws error when external is not an array", () => {
-      const raw = { name: "myproject", entry: "main.lua", external: "samp" };
+    test('throws error when external is not an array', () => {
+      const raw = { name: 'myproject', entry: 'main.lua', external: 'samp' };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
         validateConfig(raw, configPath);
@@ -133,8 +133,8 @@ describe("validateConfig", () => {
       }
     });
 
-    test("throws error when external contains non-strings", () => {
-      const raw = { name: "myproject", entry: "main.lua", external: ["samp", 123] };
+    test('throws error when external contains non-strings', () => {
+      const raw = { name: 'myproject', entry: 'main.lua', external: ['samp', 123] };
       expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
       try {
         validateConfig(raw, configPath);
@@ -144,32 +144,32 @@ describe("validateConfig", () => {
     });
   });
 
-  describe("unknown fields", () => {
-    test("ignores unknown fields", () => {
+  describe('unknown fields', () => {
+    test('ignores unknown fields', () => {
       const raw = {
-        name: "myproject",
-        entry: "main.lua",
-        unknownField: "value",
+        name: 'myproject',
+        entry: 'main.lua',
+        unknownField: 'value',
         anotherUnknown: 123,
       };
       const result = validateConfig(raw, configPath);
-      expect(result.name).toBe("myproject");
-      expect(result.entry).toBe("main.lua");
+      expect(result.name).toBe('myproject');
+      expect(result.entry).toBe('main.lua');
       expect((result as Record<string, unknown>).unknownField).toBeUndefined();
     });
   });
 
-  describe("error details", () => {
-    test("includes config path in error message", () => {
+  describe('error details', () => {
+    test('includes config path in error message', () => {
       const raw = {};
       try {
-        validateConfig(raw, "/custom/path/moonpack.json");
+        validateConfig(raw, '/custom/path/moonpack.json');
       } catch (e) {
-        expect((e as MoonpackError).message).toContain("/custom/path/moonpack.json");
+        expect((e as MoonpackError).message).toContain('/custom/path/moonpack.json');
       }
     });
 
-    test("includes errors array in error details", () => {
+    test('includes errors array in error details', () => {
       const raw = {};
       try {
         validateConfig(raw, configPath);
