@@ -18,6 +18,12 @@ export async function watchProject(options: WatchOptions): Promise<void> {
   const sourceDir = dirname(join(projectRoot, config.entry));
   const outDir = isAbsolute(config.outDir) ? config.outDir : join(projectRoot, config.outDir);
 
+  if (config.outDir === 'dist') {
+    logger.warn(
+      'outDir is "dist" - set your MoonLoader path in moonpack.local.json for hot-reload'
+    );
+  }
+
   await deployReloader(outDir, config.name, logger);
 
   logger.info(`Watching ${sourceDir} for changes...`);

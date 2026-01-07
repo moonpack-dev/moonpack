@@ -3,6 +3,7 @@ import { MoonpackError } from '../utils/errors.ts';
 import { type MoonpackConfig, type RawConfig, validateConfig } from './schema.ts';
 
 const CONFIG_FILENAME = 'moonpack.json';
+const LOCAL_CONFIG_FILENAME = 'moonpack.local.json';
 
 export interface LoadedConfig {
   config: MoonpackConfig;
@@ -10,7 +11,7 @@ export interface LoadedConfig {
   projectRoot: string;
 }
 
-/** Loads and validates moonpack.json from the given directory. */
+/** Loads moonpack.json and merges with moonpack.local.json if present. */
 export async function loadConfig(directory: string): Promise<LoadedConfig> {
   const configPath = join(directory, CONFIG_FILENAME);
   const file = Bun.file(configPath);
@@ -34,11 +35,33 @@ export async function loadConfig(directory: string): Promise<LoadedConfig> {
     );
   }
 
-  const config = validateConfig(parsed, configPath);
+  const localConfig = await loadLocalConfig(directory);
+  const merged = { ...parsed, ...localConfig };
+
+  const config = validateConfig(merged, configPath);
 
   return {
     config,
     configPath,
     projectRoot: directory,
   };
+}
+
+async function loadLocalConfig(directory: string): Promise<Partial<RawConfig>> {
+  const localPath = join(directory, LOCAL_CONFIG_FILENAME);
+  const file = Bun.file(localPath);
+
+  if (!(await file.exists())) {
+    return {};
+  }
+
+  try {
+    return (await file.json()) as Partial<RawConfig>;
+  } catch (error) {
+    throw new MoonpackError(
+      `Failed to parse ${localPath}: ${error instanceof Error ? error.message : String(error)}`,
+      'CONFIG_PARSE_ERROR',
+      { configPath: localPath, error }
+    );
+  }
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { build } from './commands/build.ts';
+import { initProject } from './commands/init.ts';
 import { watchProject } from './commands/watch.ts';
 import { formatError, MoonpackError } from './utils/errors.ts';
 import { createLogger } from './utils/logger.ts';
@@ -13,7 +14,9 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  if (command === 'build') {
+  if (command === 'init') {
+    await runInit();
+  } else if (command === 'build') {
     await runBuild();
   } else if (command === 'watch') {
     await runWatch();
@@ -31,11 +34,13 @@ Usage:
   moonpack <command>
 
 Commands:
+  init     Initialize a new project
   build    Bundle source files into a single Lua file
   watch    Watch for changes and rebuild automatically
   help     Show this help message
 
 Examples:
+  moonpack init     Create moonpack.json and src/main.lua
   moonpack build    Build the project in the current directory
   moonpack watch    Watch and rebuild on changes
 `);
@@ -73,6 +78,20 @@ async function runWatch(): Promise<void> {
 
   try {
     await watchProject({
+      cwd: process.cwd(),
+      logger,
+    });
+  } catch (error) {
+    logger.error(formatError(error));
+    process.exit(1);
+  }
+}
+
+async function runInit(): Promise<void> {
+  const logger = createLogger();
+
+  try {
+    await initProject({
       cwd: process.cwd(),
       logger,
     });
