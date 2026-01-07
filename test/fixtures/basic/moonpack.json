@@ -1,0 +1,6 @@
+{
+  "name": "TestMod",
+  "version": "1.0.0",
+  "entry": "src/main.lua",
+  "external": ["mimgui", "lib.samp.events", "ffi"]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "RealWorldTest",
+  "version": "1.0.0",
+  "entry": "src/main.lua",
+  "external": [
+    "moonloader",
+    "mimgui",
+    "imgui",
+    "ffi",
+    "bit",
+    "memory",
+    "vkeys",
+    "encoding",
+    "inicfg",
+    "samp.events",
+    "lib.samp.events",
+    "lib.sampfuncs",
+    "sha1",
+    "basexx",
+    "rkeys",
+    "faIcons",
+    "imgui_addons",
+    "requests",
+    "dkjson",
+    "lfs",
+    "MoonMonet",
+    "tabler_icons"
+  ]
+}

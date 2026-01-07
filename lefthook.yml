@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,json}"
+      run: bunx biome format --staged --no-errors-on-unmatched --write
+      stage_fixed: true
+    - name: lint
+      glob: "*.{ts,json}"
+      run: bunx biome lint --staged --no-errors-on-unmatched
+    - name: typecheck
+      run: bun run typecheck
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: test
+      run: bun test
