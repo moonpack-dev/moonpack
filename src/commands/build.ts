@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { buildDependencyGraph, generateBundle } from "../bundler/index.ts";
 import { loadConfig } from "../config/loader.ts";
 import { ensureDirectory, writeTextFile } from "../utils/fs.ts";
@@ -39,7 +39,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
 
   const bundle = generateBundle({ graph, config });
 
-  const outDir = join(projectRoot, config.outDir);
+  const outDir = isAbsolute(config.outDir) ? config.outDir : join(projectRoot, config.outDir);
   await ensureDirectory(outDir);
 
   const outputFileName = `${config.name}.lua`;

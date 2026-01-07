@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { build } from "./commands/build.ts";
+import { watchProject } from "./commands/watch.ts";
 import { formatError, MoonpackError } from "./utils/errors.ts";
 import { createLogger } from "./utils/logger.ts";
 
@@ -14,6 +15,8 @@ async function main(): Promise<void> {
 
   if (command === "build") {
     await runBuild();
+  } else if (command === "watch") {
+    await runWatch();
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "moonpack help" for usage information.');
@@ -29,10 +32,12 @@ Usage:
 
 Commands:
   build    Bundle source files into a single Lua file
+  watch    Watch for changes and rebuild automatically
   help     Show this help message
 
 Examples:
   moonpack build    Build the project in the current directory
+  moonpack watch    Watch and rebuild on changes
 `);
 }
 
@@ -59,6 +64,20 @@ async function runBuild(): Promise<void> {
         logger.error("Fix the circular dependency to continue.");
       }
     }
+    process.exit(1);
+  }
+}
+
+async function runWatch(): Promise<void> {
+  const logger = createLogger();
+
+  try {
+    await watchProject({
+      cwd: process.cwd(),
+      logger,
+    });
+  } catch (error) {
+    logger.error(formatError(error));
     process.exit(1);
   }
 }
