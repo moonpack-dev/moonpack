@@ -3,6 +3,23 @@
   "version": "0.1.0",
   "description": "A build tool for MoonLoader Lua scripts",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moonpack-dev/moonpack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/moonpack-dev/moonpack/issues"
+  },
+  "homepage": "https://github.com/moonpack-dev/moonpack#readme",
+  "keywords": [
+    "moonloader",
+    "lua",
+    "bundler",
+    "gta",
+    "samp",
+    "build-tool"
+  ],
   "bin": {
     "moonpack": "./src/cli.ts"
   },
