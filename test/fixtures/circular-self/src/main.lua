@@ -1,4 +1,4 @@
-local selfish = require 'selfish'
+local selfish = require './selfish'
 
 script_name("CircularSelfTest")
 

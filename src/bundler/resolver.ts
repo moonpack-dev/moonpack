@@ -1,9 +1,9 @@
-import { join } from 'node:path';
+import { dirname, join, normalize, relative } from 'node:path';
 import { fileExists } from '../utils/fs.ts';
 
 export interface ResolveContext {
   sourceRoot: string;
-  external: Set<string>;
+  currentFile: string;
 }
 
 export interface ResolvedModule {
@@ -13,58 +13,38 @@ export interface ResolvedModule {
 
 export interface ResolveResult {
   resolved: ResolvedModule | null;
-  isExternal: boolean;
 }
 
-/** Resolves a Lua module name to a file path. Checks for `name.lua` first, then `name/init.lua`. Dot notation maps to directories. */
 export async function resolveModulePath(
-  moduleName: string,
+  requirePath: string,
   context: ResolveContext
 ): Promise<ResolveResult> {
-  if (context.external.has(moduleName)) {
-    return { resolved: null, isExternal: true };
+  const currentDir = dirname(context.currentFile);
+  const targetPath = normalize(join(currentDir, requirePath));
+
+  const luaPath = targetPath.endsWith('.lua') ? targetPath : `${targetPath}.lua`;
+  if (await fileExists(luaPath)) {
+    const moduleName = normalizeModuleName(luaPath, context.sourceRoot);
+    return { resolved: { moduleName, filePath: luaPath } };
   }
 
-  if (isExternalPattern(moduleName, context.external)) {
-    return { resolved: null, isExternal: true };
-  }
-
-  const pathFromDots = moduleName.replace(/\./g, '/');
-
-  const directPath = join(context.sourceRoot, `${pathFromDots}.lua`);
-  if (await fileExists(directPath)) {
-    return {
-      resolved: { moduleName, filePath: directPath },
-      isExternal: false,
-    };
-  }
-
-  const initPath = join(context.sourceRoot, pathFromDots, 'init.lua');
+  const initPath = join(targetPath, 'init.lua');
   if (await fileExists(initPath)) {
-    return {
-      resolved: { moduleName, filePath: initPath },
-      isExternal: false,
-    };
+    const moduleName = normalizeModuleName(initPath, context.sourceRoot);
+    return { resolved: { moduleName, filePath: initPath } };
   }
 
-  return { resolved: null, isExternal: false };
+  return { resolved: null };
 }
 
-function isExternalPattern(moduleName: string, external: Set<string>): boolean {
-  for (const ext of external) {
-    if (moduleName.startsWith(ext + '.')) {
-      return true;
-    }
-  }
-  return false;
+export function normalizeModuleName(filePath: string, sourceRoot: string): string {
+  const rel = relative(sourceRoot, filePath);
+  return rel
+    .replace(/\.lua$/, '')
+    .replace(/[/\\]init$/, '')
+    .replace(/\\/g, '/');
 }
 
 export function getModuleNameFromPath(filePath: string, sourceRoot: string): string {
-  const relative = filePath
-    .replace(sourceRoot, '')
-    .replace(/^[/\\]/, '')
-    .replace(/\.lua$/, '')
-    .replace(/[/\\]init$/, '');
-
-  return relative.replace(/[/\\]/g, '.');
+  return normalizeModuleName(filePath, sourceRoot);
 }

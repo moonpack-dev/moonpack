@@ -1,6 +1,6 @@
-local utils = require("core.utils")
-local constants = require("core.constants")
-local sampev = require("lib.samp.events")
+local utils = require('./core/utils')
+local constants = require('./core/constants')
+local sampev = require('lib.samp.events')
 
 script_name("TestMod")
 script_author("Developer")

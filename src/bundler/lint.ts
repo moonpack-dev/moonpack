@@ -53,10 +53,11 @@ const REQUIRE_ASSIGNMENT_PATTERNS = [
   /(?:local\s+)?(\w+)\s*=\s*require\s*(['"])([^'"]+)\2/g,
 ];
 
-function parseExternalRequireAssignments(
-  source: string,
-  externalModules: Set<string>
-): ExternalVarInfo[] {
+function isExternalModule(moduleName: string): boolean {
+  return !moduleName.startsWith('./') && !moduleName.startsWith('../');
+}
+
+function parseExternalRequireAssignments(source: string): ExternalVarInfo[] {
   const results: ExternalVarInfo[] = [];
 
   for (const pattern of REQUIRE_ASSIGNMENT_PATTERNS) {
@@ -67,7 +68,7 @@ function parseExternalRequireAssignments(
       const varName = match[1];
       const moduleName = match[3];
 
-      if (varName && moduleName && externalModules.has(moduleName)) {
+      if (varName && moduleName && isExternalModule(moduleName)) {
         if (!results.some((r) => r.varName === varName && r.externalModule === moduleName)) {
           results.push({ varName, externalModule: moduleName });
         }
@@ -165,12 +166,12 @@ function parseMoonLoaderEvents(source: string, filePath: string): MoonLoaderEven
 }
 
 /** Lints the dependency graph for common issues. */
-export function lintGraph(graph: DependencyGraph, externalModules: Set<string>): LintResult {
+export function lintGraph(graph: DependencyGraph): LintResult {
   const allAssignments: ExternalAssignment[] = [];
   const moonloaderEventsInModules: MoonLoaderEventInModuleWarning[] = [];
 
   for (const [moduleName, node] of graph.modules) {
-    const externalVars = parseExternalRequireAssignments(node.source, externalModules);
+    const externalVars = parseExternalRequireAssignments(node.source);
     const assignments = parseExternalPropertyAssignments(node.source, node.filePath, externalVars);
     allAssignments.push(...assignments);
 

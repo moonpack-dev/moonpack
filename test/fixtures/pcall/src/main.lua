@@ -1,5 +1,5 @@
 local ok1, imgui = pcall(require, 'mimgui')
-local ok2, mymod = pcall(require, 'mymodule')
+local ok2, mymod = pcall(require, './mymodule')
 
 script_name("PcallLocalTest")
 

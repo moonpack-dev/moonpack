@@ -10,9 +10,6 @@ export interface GenerateOptions {
 /** Generates the final Lua bundle with module loader and all dependencies. */
 export function generateBundle(options: GenerateOptions): string {
   const { graph, config } = options;
-  const bundledModuleNames = new Set(graph.modules.keys());
-
-  bundledModuleNames.delete(graph.entryPoint.moduleName);
 
   const lines: string[] = [];
 
@@ -27,7 +24,7 @@ export function generateBundle(options: GenerateOptions): string {
     for (const moduleName of nonEntryModules) {
       const node = graph.modules.get(moduleName);
       if (node) {
-        lines.push(generateModuleWrapper(moduleName, node.source, bundledModuleNames));
+        lines.push(generateModuleWrapper(moduleName, node.source, node.requireMappings));
         lines.push('');
       }
     }
@@ -35,7 +32,7 @@ export function generateBundle(options: GenerateOptions): string {
 
   const transformedEntrySource = transformRequiresToLoad(
     graph.entryPoint.source,
-    bundledModuleNames
+    graph.entryPoint.requireMappings
   );
   lines.push(transformedEntrySource);
 
@@ -65,10 +62,10 @@ end`;
 function generateModuleWrapper(
   moduleName: string,
   source: string,
-  bundledModules: Set<string>
+  requireMappings: Map<string, string>
 ): string {
   const localizedSource = autoLocalizeFunctions(source);
-  const transformedSource = transformRequiresToLoad(localizedSource, bundledModules);
+  const transformedSource = transformRequiresToLoad(localizedSource, requireMappings);
   const indentedSource = indentCode(transformedSource, '    ');
 
   return `__modules["${moduleName}"] = function()

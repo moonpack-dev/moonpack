@@ -1,2 +1,2 @@
-local nonexistent = require("does.not.exist")
+local nonexistent = require('./does/not/exist')
 function main() end

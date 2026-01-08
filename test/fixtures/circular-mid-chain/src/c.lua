@@ -1,4 +1,4 @@
-local d = require 'd'
+local d = require './d'
 local M = {}
 M.name = "c"
 return M

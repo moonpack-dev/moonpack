@@ -4,6 +4,11 @@ export interface RequireStatement {
   column: number;
   raw: string;
   type: 'standard' | 'compact' | 'pcall';
+  isLocal: boolean;
+}
+
+function isLocalRequire(moduleName: string): boolean {
+  return moduleName.startsWith('./') || moduleName.startsWith('../');
 }
 
 interface StringSpan {
@@ -86,6 +91,7 @@ export function parseRequireStatements(source: string): RequireStatement[] {
       column: position.column,
       raw: m.raw,
       type: m.type,
+      isLocal: isLocalRequire(m.moduleName),
     };
   });
 }
@@ -283,7 +289,10 @@ export function autoLocalizeFunctions(source: string): string {
 }
 
 /** Replaces require() calls for bundled modules with __load() calls. External modules remain unchanged. */
-export function transformRequiresToLoad(source: string, bundledModules: Set<string>): string {
+export function transformRequiresToLoad(
+  source: string,
+  requireToModule: Map<string, string>
+): string {
   const stringSpans = findAllStringSpans(source);
   const commentSpans = findAllCommentSpans(source, stringSpans);
   const excludedRanges = [...stringSpans, ...commentSpans];
@@ -299,10 +308,10 @@ export function transformRequiresToLoad(source: string, bundledModules: Set<stri
         continue;
       }
 
-      const moduleName = match[moduleGroup];
+      const requirePath = match[moduleGroup];
       const quote = match[moduleGroup - 1];
 
-      if (moduleName === undefined || quote === undefined) {
+      if (requirePath === undefined || quote === undefined) {
         continue;
       }
 
@@ -310,7 +319,8 @@ export function transformRequiresToLoad(source: string, bundledModules: Set<stri
         continue;
       }
 
-      if (!bundledModules.has(moduleName)) {
+      const normalizedName = requireToModule.get(requirePath);
+      if (normalizedName === undefined) {
         continue;
       }
 
@@ -328,11 +338,9 @@ export function transformRequiresToLoad(source: string, bundledModules: Set<stri
 
       let replacement: string;
       if (type === 'pcall') {
-        replacement = `pcall(__load, ${quote}${moduleName}${quote})`;
-      } else if (type === 'compact') {
-        replacement = `__load(${quote}${moduleName}${quote})`;
+        replacement = `pcall(__load, ${quote}${normalizedName}${quote})`;
       } else {
-        replacement = `__load(${quote}${moduleName}${quote})`;
+        replacement = `__load(${quote}${normalizedName}${quote})`;
       }
 
       replacements.push({

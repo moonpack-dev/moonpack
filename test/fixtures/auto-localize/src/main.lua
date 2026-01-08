@@ -1,5 +1,5 @@
-local helpers = require("helpers")
-local sampev = require("lib.samp.events")
+local helpers = require('./helpers')
+local sampev = require('lib.samp.events')
 
 function main()
     helpers.greet("World")

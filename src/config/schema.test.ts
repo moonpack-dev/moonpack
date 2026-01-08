@@ -12,7 +12,6 @@ describe('validateConfig', () => {
       expect(result.name).toBe('myproject');
       expect(result.entry).toBe('src/main.lua');
       expect(result.outDir).toBe('dist');
-      expect(result.external).toEqual([]);
       expect(result.version).toBeUndefined();
     });
 
@@ -22,26 +21,18 @@ describe('validateConfig', () => {
         version: '1.0.0',
         entry: 'src/main.lua',
         outDir: 'build',
-        external: ['samp', 'imgui'],
       };
       const result = validateConfig(raw, configPath);
       expect(result.name).toBe('myproject');
       expect(result.version).toBe('1.0.0');
       expect(result.entry).toBe('src/main.lua');
       expect(result.outDir).toBe('build');
-      expect(result.external).toEqual(['samp', 'imgui']);
     });
 
     test('applies default outDir when not provided', () => {
       const raw = { name: 'myproject', entry: 'main.lua' };
       const result = validateConfig(raw, configPath);
       expect(result.outDir).toBe('dist');
-    });
-
-    test('applies default external when not provided', () => {
-      const raw = { name: 'myproject', entry: 'main.lua' };
-      const result = validateConfig(raw, configPath);
-      expect(result.external).toEqual([]);
     });
   });
 
@@ -120,26 +111,6 @@ describe('validateConfig', () => {
         validateConfig(raw, configPath);
       } catch (e) {
         expect((e as MoonpackError).message).toContain("'outDir' must be a string");
-      }
-    });
-
-    test('throws error when external is not an array', () => {
-      const raw = { name: 'myproject', entry: 'main.lua', external: 'samp' };
-      expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
-      try {
-        validateConfig(raw, configPath);
-      } catch (e) {
-        expect((e as MoonpackError).message).toContain("'external' must be an array");
-      }
-    });
-
-    test('throws error when external contains non-strings', () => {
-      const raw = { name: 'myproject', entry: 'main.lua', external: ['samp', 123] };
-      expect(() => validateConfig(raw, configPath)).toThrow(MoonpackError);
-      try {
-        validateConfig(raw, configPath);
-      } catch (e) {
-        expect((e as MoonpackError).message).toContain("'external' must contain only strings");
       }
     });
   });

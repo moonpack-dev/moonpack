@@ -10,7 +10,6 @@ const FIXTURES_DIR = join(import.meta.dir, '../../test/fixtures');
 interface FixtureConfig {
   name: string;
   entry: string;
-  external?: string[];
   version?: string;
 }
 
@@ -29,7 +28,6 @@ async function buildFixture(fixtureName: string) {
   const graph = await buildDependencyGraph({
     entryPath,
     sourceRoot,
-    external: new Set(config.external ?? []),
   });
 
   const bundle = generateBundle({
@@ -39,12 +37,10 @@ async function buildFixture(fixtureName: string) {
       version: config.version,
       entry: config.entry,
       outDir: 'dist',
-      external: config.external ?? [],
     },
   });
 
-  const externalSet = new Set(config.external ?? []);
-  const lintResult = lintGraph(graph, externalSet);
+  const lintResult = lintGraph(graph);
 
   return { graph, bundle, config, lintResult };
 }
@@ -162,7 +158,7 @@ describe('fixture integration tests', () => {
         await buildFixture('missing');
       } catch (e) {
         expect((e as MoonpackError).code).toBe('MODULE_NOT_FOUND');
-        expect((e as MoonpackError).message).toContain('does.not.exist');
+        expect((e as MoonpackError).message).toContain('./does/not/exist');
       }
     });
   });

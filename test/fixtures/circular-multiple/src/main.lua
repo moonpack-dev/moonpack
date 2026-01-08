@@ -1,5 +1,5 @@
-local a = require 'a'
-local x = require 'x'
+local a = require './a'
+local x = require './x'
 
 script_name("CircularMultipleTest")
 

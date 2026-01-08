@@ -37,7 +37,6 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
     graph = await buildDependencyGraph({
       entryPath,
       sourceRoot,
-      external: new Set(config.external),
     });
   } catch (error) {
     spinner.stop('Build failed');
@@ -47,8 +46,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
   const moduleCount = graph.modules.size;
   spinner.stop(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
 
-  const externalModules = new Set(config.external);
-  const lintResult = lintGraph(graph, externalModules);
+  const lintResult = lintGraph(graph);
   const warnings = formatLintWarnings(lintResult);
   for (const warning of warnings) {
     ui.warn(warning);

@@ -14,16 +14,11 @@ describe('buildDependencyGraph', () => {
     await tempDir.cleanup();
   });
 
-  async function buildGraph(
-    files: Record<string, string>,
-    entryFile: string,
-    external: string[] = []
-  ) {
+  async function buildGraph(files: Record<string, string>, entryFile: string) {
     await createFileStructure(tempDir.path, files);
     const options: BuildGraphOptions = {
       entryPath: `${tempDir.path}/${entryFile}`,
       sourceRoot: tempDir.path,
-      external: new Set(external),
     };
     return buildDependencyGraph(options);
   }
@@ -43,7 +38,7 @@ describe('buildDependencyGraph', () => {
     test('builds graph for A → B', async () => {
       const graph = await buildGraph(
         {
-          'a.lua': "local b = require('b')\nreturn {}",
+          'a.lua': "local b = require('./b')\nreturn {}",
           'b.lua': 'return {}',
         },
         'a.lua'
@@ -58,8 +53,8 @@ describe('buildDependencyGraph', () => {
     test('builds graph for A → B → C', async () => {
       const graph = await buildGraph(
         {
-          'a.lua': "local b = require('b')\nreturn {}",
-          'b.lua': "local c = require('c')\nreturn {}",
+          'a.lua': "local b = require('./b')\nreturn {}",
+          'b.lua': "local c = require('./c')\nreturn {}",
           'c.lua': 'return {}',
         },
         'a.lua'
@@ -75,9 +70,9 @@ describe('buildDependencyGraph', () => {
     test('handles A → B, A → C, B → D, C → D', async () => {
       const graph = await buildGraph(
         {
-          'a.lua': "local b = require('b')\nlocal c = require('c')\nreturn {}",
-          'b.lua': "local d = require('d')\nreturn {}",
-          'c.lua': "local d = require('d')\nreturn {}",
+          'a.lua': "local b = require('./b')\nlocal c = require('./c')\nreturn {}",
+          'b.lua': "local d = require('./d')\nreturn {}",
+          'c.lua': "local d = require('./d')\nreturn {}",
           'd.lua': 'return {}',
         },
         'a.lua'
@@ -101,16 +96,15 @@ describe('buildDependencyGraph', () => {
     });
   });
 
-  describe('external modules', () => {
+  describe('external modules (non-path requires)', () => {
     test('excludes external modules from graph', async () => {
       const graph = await buildGraph(
         {
           'main.lua':
-            "local samp = require('samp.events')\nlocal utils = require('utils')\nreturn {}",
+            "local samp = require('samp.events')\nlocal utils = require('./utils')\nreturn {}",
           'utils.lua': 'return {}',
         },
-        'main.lua',
-        ['samp']
+        'main.lua'
       );
 
       expect(graph.modules.size).toBe(2);
@@ -119,19 +113,18 @@ describe('buildDependencyGraph', () => {
       expect(graph.entryPoint.dependencies).toEqual(['utils']);
     });
 
-    test('excludes all external prefixed modules', async () => {
+    test('excludes all external modules (without path prefix)', async () => {
       const graph = await buildGraph(
         {
           'main.lua': `
 local a = require('samp')
 local b = require('samp.events')
 local c = require('imgui')
-local d = require('local')
+local d = require('./local')
 return {}`,
           'local.lua': 'return {}',
         },
-        'main.lua',
-        ['samp', 'imgui']
+        'main.lua'
       );
 
       expect(graph.modules.size).toBe(2);
@@ -145,8 +138,8 @@ return {}`,
       await expect(
         buildGraph(
           {
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local a = require('a')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local a = require('./a')\nreturn {}",
           },
           'a.lua'
         )
@@ -155,8 +148,8 @@ return {}`,
       try {
         await buildGraph(
           {
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local a = require('a')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local a = require('./a')\nreturn {}",
           },
           'a.lua'
         );
@@ -169,11 +162,11 @@ return {}`,
 
     test('detects self-reference A → A', async () => {
       await expect(
-        buildGraph({ 'a.lua': "local a = require('a')\nreturn {}" }, 'a.lua')
+        buildGraph({ 'a.lua': "local a = require('./a')\nreturn {}" }, 'a.lua')
       ).rejects.toThrow(MoonpackError);
 
       try {
-        await buildGraph({ 'a.lua': "local a = require('a')\nreturn {}" }, 'a.lua');
+        await buildGraph({ 'a.lua': "local a = require('./a')\nreturn {}" }, 'a.lua');
       } catch (e) {
         expect((e as MoonpackError).message).toContain('a → a');
       }
@@ -183,11 +176,11 @@ return {}`,
       await expect(
         buildGraph(
           {
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local c = require('c')\nreturn {}",
-            'c.lua': "local d = require('d')\nreturn {}",
-            'd.lua': "local e = require('e')\nreturn {}",
-            'e.lua': "local a = require('a')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local c = require('./c')\nreturn {}",
+            'c.lua': "local d = require('./d')\nreturn {}",
+            'd.lua': "local e = require('./e')\nreturn {}",
+            'e.lua': "local a = require('./a')\nreturn {}",
           },
           'a.lua'
         )
@@ -196,11 +189,11 @@ return {}`,
       try {
         await buildGraph(
           {
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local c = require('c')\nreturn {}",
-            'c.lua': "local d = require('d')\nreturn {}",
-            'd.lua': "local e = require('e')\nreturn {}",
-            'e.lua': "local a = require('a')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local c = require('./c')\nreturn {}",
+            'c.lua': "local d = require('./d')\nreturn {}",
+            'd.lua': "local e = require('./e')\nreturn {}",
+            'e.lua': "local a = require('./a')\nreturn {}",
           },
           'a.lua'
         );
@@ -213,10 +206,10 @@ return {}`,
       await expect(
         buildGraph(
           {
-            'entry.lua': "local a = require('a')\nreturn {}",
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local c = require('c')\nreturn {}",
-            'c.lua': "local b = require('b')\nreturn {}",
+            'entry.lua': "local a = require('./a')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local c = require('./c')\nreturn {}",
+            'c.lua': "local b = require('./b')\nreturn {}",
           },
           'entry.lua'
         )
@@ -225,10 +218,10 @@ return {}`,
       try {
         await buildGraph(
           {
-            'entry.lua': "local a = require('a')\nreturn {}",
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local c = require('c')\nreturn {}",
-            'c.lua': "local b = require('b')\nreturn {}",
+            'entry.lua': "local a = require('./a')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local c = require('./c')\nreturn {}",
+            'c.lua': "local b = require('./b')\nreturn {}",
           },
           'entry.lua'
         );
@@ -241,11 +234,11 @@ return {}`,
       try {
         await buildGraph(
           {
-            'entry.lua': "local a = require('a')\nlocal x = require('x')\nreturn {}",
-            'a.lua': "local b = require('b')\nreturn {}",
-            'b.lua': "local a = require('a')\nreturn {}",
-            'x.lua': "local y = require('y')\nreturn {}",
-            'y.lua': "local x = require('x')\nreturn {}",
+            'entry.lua': "local a = require('./a')\nlocal x = require('./x')\nreturn {}",
+            'a.lua': "local b = require('./b')\nreturn {}",
+            'b.lua': "local a = require('./a')\nreturn {}",
+            'x.lua': "local y = require('./y')\nreturn {}",
+            'y.lua': "local x = require('./x')\nreturn {}",
           },
           'entry.lua'
         );
@@ -261,18 +254,18 @@ return {}`,
   describe('module not found', () => {
     test('throws error for missing module', async () => {
       await expect(
-        buildGraph({ 'main.lua': "local missing = require('missing')\nreturn {}" }, 'main.lua')
+        buildGraph({ 'main.lua': "local missing = require('./missing')\nreturn {}" }, 'main.lua')
       ).rejects.toThrow(MoonpackError);
 
       try {
         await buildGraph(
-          { 'main.lua': "local missing = require('missing')\nreturn {}" },
+          { 'main.lua': "local missing = require('./missing')\nreturn {}" },
           'main.lua'
         );
       } catch (e) {
         expect(e).toBeInstanceOf(MoonpackError);
         expect((e as MoonpackError).code).toBe('MODULE_NOT_FOUND');
-        expect((e as MoonpackError).message).toContain('missing');
+        expect((e as MoonpackError).message).toContain('./missing');
       }
     });
   });
@@ -281,9 +274,9 @@ return {}`,
     test('dependencies come before dependents', async () => {
       const graph = await buildGraph(
         {
-          'main.lua': "local a = require('a')\nlocal b = require('b')\nreturn {}",
-          'a.lua': "local c = require('c')\nreturn {}",
-          'b.lua': "local c = require('c')\nreturn {}",
+          'main.lua': "local a = require('./a')\nlocal b = require('./b')\nreturn {}",
+          'a.lua': "local c = require('./c')\nreturn {}",
+          'b.lua': "local c = require('./c')\nreturn {}",
           'c.lua': 'return {}',
         },
         'main.lua'
@@ -299,6 +292,34 @@ return {}`,
           }
         }
       }
+    });
+  });
+
+  describe('require mappings', () => {
+    test('populates requireMappings for local requires', async () => {
+      const graph = await buildGraph(
+        {
+          'main.lua': "local utils = require('./utils')\nreturn {}",
+          'utils.lua': 'return {}',
+        },
+        'main.lua'
+      );
+
+      expect(graph.entryPoint.requireMappings.get('./utils')).toBe('utils');
+    });
+
+    test('does not include external requires in mappings', async () => {
+      const graph = await buildGraph(
+        {
+          'main.lua':
+            "local samp = require('samp.events')\nlocal utils = require('./utils')\nreturn {}",
+          'utils.lua': 'return {}',
+        },
+        'main.lua'
+      );
+
+      expect(graph.entryPoint.requireMappings.has('samp.events')).toBe(false);
+      expect(graph.entryPoint.requireMappings.get('./utils')).toBe('utils');
     });
   });
 });

@@ -14,6 +14,7 @@ function createMockGraph(
       source: mod.source,
       requires: [],
       dependencies: [],
+      requireMappings: new Map(),
     });
   }
 
@@ -53,7 +54,7 @@ end
       },
     ]);
 
-    const result = lintGraph(graph, new Set(['lib.samp.events']));
+    const result = lintGraph(graph);
 
     expect(result.duplicateAssignments).toHaveLength(1);
     expect(result.duplicateAssignments[0].propertyPath).toBe('sampev.onServerMessage');
@@ -82,7 +83,7 @@ end
       },
     ]);
 
-    const result = lintGraph(graph, new Set(['lib.samp.events']));
+    const result = lintGraph(graph);
 
     expect(result.duplicateAssignments).toHaveLength(1);
     expect(result.duplicateAssignments[0].propertyPath).toBe('sampev.onPlayerJoin');
@@ -108,18 +109,18 @@ end
       },
     ]);
 
-    const result = lintGraph(graph, new Set(['lib.samp.events']));
+    const result = lintGraph(graph);
 
     expect(result.duplicateAssignments).toHaveLength(0);
   });
 
-  test('does not warn for non-external modules', () => {
+  test('does not warn for path-based local requires', () => {
     const graph = createMockGraph([
       {
         name: 'file1',
         path: '/src/file1.lua',
         source: `
-local mylib = require('mylib')
+local mylib = require('./mylib')
 mylib.handler = function() end
 `,
       },
@@ -127,13 +128,13 @@ mylib.handler = function() end
         name: 'file2',
         path: '/src/file2.lua',
         source: `
-local mylib = require('mylib')
+local mylib = require('./mylib')
 mylib.handler = function() end
 `,
       },
     ]);
 
-    const result = lintGraph(graph, new Set(['lib.samp.events']));
+    const result = lintGraph(graph);
 
     expect(result.duplicateAssignments).toHaveLength(0);
   });
@@ -158,7 +159,7 @@ function sampev.onChat() end
       },
     ]);
 
-    const result = lintGraph(graph, new Set(['lib.samp.events']));
+    const result = lintGraph(graph);
 
     expect(result.duplicateAssignments).toHaveLength(0);
   });
@@ -170,7 +171,7 @@ describe('lintMoonLoaderEventsInModules', () => {
       {
         name: 'entry',
         path: '/src/entry.lua',
-        source: `local helpers = require('helpers')
+        source: `local helpers = require('./helpers')
 function main() end`,
       },
       {
@@ -182,7 +183,7 @@ end`,
       },
     ]);
 
-    const result = lintGraph(graph, new Set());
+    const result = lintGraph(graph);
 
     expect(result.moonloaderEventsInModules).toHaveLength(1);
     expect(result.moonloaderEventsInModules[0].eventName).toBe('main');
@@ -194,7 +195,7 @@ end`,
       {
         name: 'entry',
         path: '/src/entry.lua',
-        source: `local mod = require('mod')`,
+        source: `local mod = require('./mod')`,
       },
       {
         name: 'mod',
@@ -205,7 +206,7 @@ end`,
       },
     ]);
 
-    const result = lintGraph(graph, new Set());
+    const result = lintGraph(graph);
 
     expect(result.moonloaderEventsInModules).toHaveLength(1);
     expect(result.moonloaderEventsInModules[0].eventName).toBe('onScriptTerminate');
@@ -216,7 +217,7 @@ end`,
       {
         name: 'entry',
         path: '/src/entry.lua',
-        source: `local mod = require('mod')`,
+        source: `local mod = require('./mod')`,
       },
       {
         name: 'mod',
@@ -227,7 +228,7 @@ function onWindowMessage() end`,
       },
     ]);
 
-    const result = lintGraph(graph, new Set());
+    const result = lintGraph(graph);
 
     expect(result.moonloaderEventsInModules).toHaveLength(3);
     const eventNames = result.moonloaderEventsInModules.map((e) => e.eventName);
@@ -246,7 +247,7 @@ function onScriptTerminate() end`,
       },
     ]);
 
-    const result = lintGraph(graph, new Set());
+    const result = lintGraph(graph);
 
     expect(result.moonloaderEventsInModules).toHaveLength(0);
   });
@@ -256,7 +257,7 @@ function onScriptTerminate() end`,
       {
         name: 'entry',
         path: '/src/entry.lua',
-        source: `local mod = require('mod')`,
+        source: `local mod = require('./mod')`,
       },
       {
         name: 'mod',
@@ -267,7 +268,7 @@ end`,
       },
     ]);
 
-    const result = lintGraph(graph, new Set());
+    const result = lintGraph(graph);
 
     expect(result.moonloaderEventsInModules).toHaveLength(0);
   });
@@ -277,7 +278,7 @@ end`,
       {
         name: 'entry',
         path: '/src/entry.lua',
-        source: `local mod = require('mod')`,
+        source: `local mod = require('./mod')`,
       },
       {
         name: 'mod',
@@ -287,7 +288,7 @@ function process() end`,
       },
     ]);
 
-    const result = lintGraph(graph, new Set());
+    const result = lintGraph(graph);
 
     expect(result.moonloaderEventsInModules).toHaveLength(0);
   });

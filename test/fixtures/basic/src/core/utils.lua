@@ -1,4 +1,4 @@
-local constants = require("core.constants")
+local constants = require('./constants')
 
 local M = {}
 

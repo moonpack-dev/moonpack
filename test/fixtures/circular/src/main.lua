@@ -1,2 +1,2 @@
-local a = require("a")
+local a = require('./a')
 function main() end

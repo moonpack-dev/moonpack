@@ -227,37 +227,77 @@ print(x + y)
   });
 });
 
+describe('parseRequireStatements isLocal detection', () => {
+  test('marks path-based requires as local', () => {
+    const source = `local utils = require('./utils')`;
+    const result = parseRequireStatements(source);
+    expect(result).toHaveLength(1);
+    expect(result[0].isLocal).toBe(true);
+  });
+
+  test('marks parent path requires as local', () => {
+    const source = `local lib = require('../lib')`;
+    const result = parseRequireStatements(source);
+    expect(result).toHaveLength(1);
+    expect(result[0].isLocal).toBe(true);
+  });
+
+  test('marks non-path requires as external', () => {
+    const source = `local samp = require('samp.events')`;
+    const result = parseRequireStatements(source);
+    expect(result).toHaveLength(1);
+    expect(result[0].isLocal).toBe(false);
+  });
+
+  test('handles mixed local and external requires', () => {
+    const source = `
+local utils = require('./utils')
+local samp = require('samp.events')
+local config = require('../config')
+    `.trim();
+    const result = parseRequireStatements(source);
+    expect(result).toHaveLength(3);
+    expect(result[0].isLocal).toBe(true);
+    expect(result[1].isLocal).toBe(false);
+    expect(result[2].isLocal).toBe(true);
+  });
+});
+
 describe('transformRequiresToLoad', () => {
-  const bundledModules = new Set(['local.mod', 'utils', 'core.config']);
+  const requireMappings = new Map([
+    ['./utils', 'utils'],
+    ['./core/config', 'core/config'],
+    ['../lib', 'lib'],
+  ]);
 
   describe('basic transformation', () => {
-    test('transforms bundled module require', () => {
-      const source = `local mod = require("local.mod")`;
-      const result = transformRequiresToLoad(source, bundledModules);
-      expect(result).toBe(`local mod = __load("local.mod")`);
+    test('transforms local require to __load with normalized name', () => {
+      const source = `local mod = require("./utils")`;
+      const result = transformRequiresToLoad(source, requireMappings);
+      expect(result).toBe(`local mod = __load("utils")`);
     });
 
-    test('preserves external module require', () => {
+    test('preserves external module require (not in mapping)', () => {
       const source = `local samp = require("samp.events")`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(`local samp = require("samp.events")`);
     });
 
     test('transforms compact require syntax', () => {
-      const source = `local mod = require 'utils'`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const source = `local mod = require './utils'`;
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(`local mod = __load('utils')`);
     });
 
     test('transforms pcall wrapped require', () => {
-      const source = `local ok, mod = pcall(require, "utils")`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const source = `local ok, mod = pcall(require, "./utils")`;
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(`local ok, mod = pcall(__load, "utils")`);
     });
 
     test('preserves pcall with external module', () => {
       const source = `local ok, samp = pcall(require, "samp.events")`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(`local ok, samp = pcall(require, "samp.events")`);
     });
   });
@@ -265,59 +305,59 @@ describe('transformRequiresToLoad', () => {
   describe('mixed transformations', () => {
     test('transforms multiple requires correctly', () => {
       const source = `
-local a = require("utils")
+local a = require("./utils")
 local b = require("samp.events")
-local c = require("core.config")
+local c = require("./core/config")
             `.trim();
-      const result = transformRequiresToLoad(source, bundledModules);
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toContain(`__load("utils")`);
       expect(result).toContain(`require("samp.events")`);
-      expect(result).toContain(`__load("core.config")`);
+      expect(result).toContain(`__load("core/config")`);
     });
   });
 
   describe('preserves strings and comments', () => {
     test('does not transform require inside string', () => {
-      const source = `local s = "require('utils')"
-local real = require("utils")`;
-      const result = transformRequiresToLoad(source, bundledModules);
-      expect(result).toContain(`"require('utils')"`);
+      const source = `local s = "require('./utils')"
+local real = require("./utils")`;
+      const result = transformRequiresToLoad(source, requireMappings);
+      expect(result).toContain(`"require('./utils')"`);
       expect(result).toContain(`__load("utils")`);
     });
 
     test('does not transform require inside comment', () => {
-      const source = `-- require("utils")
-local real = require("utils")`;
-      const result = transformRequiresToLoad(source, bundledModules);
-      expect(result).toContain(`-- require("utils")`);
+      const source = `-- require("./utils")
+local real = require("./utils")`;
+      const result = transformRequiresToLoad(source, requireMappings);
+      expect(result).toContain(`-- require("./utils")`);
       expect(result).toContain(`__load("utils")`);
     });
   });
 
   describe('quote preservation', () => {
     test('preserves single quotes', () => {
-      const source = `local mod = require('utils')`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const source = `local mod = require('./utils')`;
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(`local mod = __load('utils')`);
     });
 
     test('preserves double quotes', () => {
-      const source = `local mod = require("utils")`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const source = `local mod = require("./utils")`;
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(`local mod = __load("utils")`);
     });
   });
 
   describe('edge cases', () => {
-    test('handles empty bundled modules set', () => {
-      const source = `local mod = require("utils")`;
-      const result = transformRequiresToLoad(source, new Set());
+    test('handles empty require mappings', () => {
+      const source = `local mod = require("./utils")`;
+      const result = transformRequiresToLoad(source, new Map());
       expect(result).toBe(source);
     });
 
     test('handles source with no requires', () => {
       const source = `local x = 1`;
-      const result = transformRequiresToLoad(source, bundledModules);
+      const result = transformRequiresToLoad(source, requireMappings);
       expect(result).toBe(source);
     });
   });

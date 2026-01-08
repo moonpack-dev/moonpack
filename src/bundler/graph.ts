@@ -9,6 +9,7 @@ export interface ModuleNode {
   source: string;
   requires: RequireStatement[];
   dependencies: string[];
+  requireMappings: Map<string, string>;
 }
 
 export interface DependencyGraph {
@@ -20,14 +21,12 @@ export interface DependencyGraph {
 export interface BuildGraphOptions {
   entryPath: string;
   sourceRoot: string;
-  external: Set<string>;
 }
 
 /** Recursively resolves all dependencies and returns modules in topological order. Throws on circular dependencies. */
 export async function buildDependencyGraph(options: BuildGraphOptions): Promise<DependencyGraph> {
-  const { entryPath, sourceRoot, external } = options;
+  const { entryPath, sourceRoot } = options;
   const modules = new Map<string, ModuleNode>();
-  const resolveContext: ResolveContext = { sourceRoot, external };
 
   const entrySource = await readTextFile(entryPath);
   const entryModuleName = getModuleNameFromPath(entryPath, sourceRoot);
@@ -38,11 +37,12 @@ export async function buildDependencyGraph(options: BuildGraphOptions): Promise<
     source: entrySource,
     requires: parseRequireStatements(entrySource),
     dependencies: [],
+    requireMappings: new Map(),
   };
 
   modules.set(entryModuleName, entryNode);
 
-  await processModuleDependencies(entryNode, modules, resolveContext);
+  await processModuleDependencies(entryNode, modules, sourceRoot);
 
   detectCircularDependencies(modules);
 
@@ -58,14 +58,19 @@ export async function buildDependencyGraph(options: BuildGraphOptions): Promise<
 async function processModuleDependencies(
   node: ModuleNode,
   modules: Map<string, ModuleNode>,
-  context: ResolveContext
+  sourceRoot: string
 ): Promise<void> {
   for (const req of node.requires) {
-    const result = await resolveModulePath(req.moduleName, context);
-
-    if (result.isExternal) {
+    if (!req.isLocal) {
       continue;
     }
+
+    const context: ResolveContext = {
+      sourceRoot,
+      currentFile: node.filePath,
+    };
+
+    const result = await resolveModulePath(req.moduleName, context);
 
     if (result.resolved === null) {
       throw new MoonpackError(
@@ -79,6 +84,7 @@ async function processModuleDependencies(
       );
     }
 
+    node.requireMappings.set(req.moduleName, result.resolved.moduleName);
     node.dependencies.push(result.resolved.moduleName);
 
     if (modules.has(result.resolved.moduleName)) {
@@ -92,11 +98,12 @@ async function processModuleDependencies(
       source: depSource,
       requires: parseRequireStatements(depSource),
       dependencies: [],
+      requireMappings: new Map(),
     };
 
     modules.set(result.resolved.moduleName, depNode);
 
-    await processModuleDependencies(depNode, modules, context);
+    await processModuleDependencies(depNode, modules, sourceRoot);
   }
 }
 

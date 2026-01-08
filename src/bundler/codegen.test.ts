@@ -6,7 +6,8 @@ import type { DependencyGraph, ModuleNode } from './graph.ts';
 function createMockNode(
   moduleName: string,
   source: string,
-  dependencies: string[] = []
+  dependencies: string[] = [],
+  requireMappings: Map<string, string> = new Map()
 ): ModuleNode {
   return {
     moduleName,
@@ -14,6 +15,7 @@ function createMockNode(
     source,
     requires: [],
     dependencies,
+    requireMappings,
   };
 }
 
@@ -31,7 +33,6 @@ function createMockConfig(overrides: Partial<MoonpackConfig> = {}): MoonpackConf
     name: 'test-project',
     entry: 'src/main.lua',
     outDir: 'dist',
-    external: [],
     ...overrides,
   };
 }
@@ -94,9 +95,15 @@ describe('generateBundle', () => {
   describe('module wrapping', () => {
     test('wraps non-entry modules in __modules', () => {
       const modules = new Map<string, ModuleNode>();
+      const mainMappings = new Map([['./utils', 'utils']]);
       modules.set(
         'main',
-        createMockNode('main', "local utils = require('utils')\nprint('main')", ['utils'])
+        createMockNode(
+          'main',
+          "local utils = require('./utils')\nprint('main')",
+          ['utils'],
+          mainMappings
+        )
       );
       modules.set('utils', createMockNode('utils', "local M = {}\nM.version = '1.0'\nreturn M"));
 
@@ -137,10 +144,20 @@ describe('generateBundle', () => {
   describe('require transformation', () => {
     test('transforms bundled requires to __load in modules', () => {
       const modules = new Map<string, ModuleNode>();
-      modules.set('main', createMockNode('main', "local utils = require('utils')", ['utils']));
+      const mainMappings = new Map([['./utils', 'utils']]);
+      modules.set(
+        'main',
+        createMockNode('main', "local utils = require('./utils')", ['utils'], mainMappings)
+      );
+      const utilsMappings = new Map([['./helper', 'helper']]);
       modules.set(
         'utils',
-        createMockNode('utils', "local helper = require('helper')\nreturn {}", ['helper'])
+        createMockNode(
+          'utils',
+          "local helper = require('./helper')\nreturn {}",
+          ['helper'],
+          utilsMappings
+        )
       );
       modules.set('helper', createMockNode('helper', 'return {}'));
 
@@ -153,9 +170,15 @@ describe('generateBundle', () => {
 
     test('transforms bundled requires in entry point', () => {
       const modules = new Map<string, ModuleNode>();
+      const mainMappings = new Map([['./utils', 'utils']]);
       modules.set(
         'main',
-        createMockNode('main', "local utils = require('utils')\nprint('done')", ['utils'])
+        createMockNode(
+          'main',
+          "local utils = require('./utils')\nprint('done')",
+          ['utils'],
+          mainMappings
+        )
       );
       modules.set('utils', createMockNode('utils', 'return {}'));
 
@@ -168,12 +191,14 @@ describe('generateBundle', () => {
 
     test('preserves external requires', () => {
       const modules = new Map<string, ModuleNode>();
+      const mainMappings = new Map([['./utils', 'utils']]);
       modules.set(
         'main',
         createMockNode(
           'main',
-          "local samp = require('samp.events')\nlocal utils = require('utils')",
-          ['utils']
+          "local samp = require('samp.events')\nlocal utils = require('./utils')",
+          ['utils'],
+          mainMappings
         )
       );
       modules.set('utils', createMockNode('utils', 'return {}'));
@@ -189,7 +214,11 @@ describe('generateBundle', () => {
   describe('indentation', () => {
     test('indents wrapped module content with 4 spaces', () => {
       const modules = new Map<string, ModuleNode>();
-      modules.set('main', createMockNode('main', "local utils = require('utils')", ['utils']));
+      const mainMappings = new Map([['./utils', 'utils']]);
+      modules.set(
+        'main',
+        createMockNode('main', "local utils = require('./utils')", ['utils'], mainMappings)
+      );
       modules.set(
         'utils',
         createMockNode('utils', 'local x = 1\nlocal y = 2\nreturn { x = x, y = y }')
@@ -205,7 +234,11 @@ describe('generateBundle', () => {
 
     test('preserves empty lines in indented content', () => {
       const modules = new Map<string, ModuleNode>();
-      modules.set('main', createMockNode('main', "local utils = require('utils')", ['utils']));
+      const mainMappings = new Map([['./utils', 'utils']]);
+      modules.set(
+        'main',
+        createMockNode('main', "local utils = require('./utils')", ['utils'], mainMappings)
+      );
       modules.set('utils', createMockNode('utils', 'local x = 1\n\nlocal y = 2\nreturn {}'));
 
       const graph = createMockGraph('main', modules, ['utils', 'main']);
@@ -224,9 +257,18 @@ describe('generateBundle', () => {
   describe('module order', () => {
     test('outputs modules in topological order (dependencies first)', () => {
       const modules = new Map<string, ModuleNode>();
-      modules.set('main', createMockNode('main', "require('a')\nrequire('b')", ['a', 'b']));
-      modules.set('a', createMockNode('a', "require('c')\nreturn {}", ['c']));
-      modules.set('b', createMockNode('b', "require('c')\nreturn {}", ['c']));
+      const mainMappings = new Map([
+        ['./a', 'a'],
+        ['./b', 'b'],
+      ]);
+      modules.set(
+        'main',
+        createMockNode('main', "require('./a')\nrequire('./b')", ['a', 'b'], mainMappings)
+      );
+      const aMappings = new Map([['./c', 'c']]);
+      modules.set('a', createMockNode('a', "require('./c')\nreturn {}", ['c'], aMappings));
+      const bMappings = new Map([['./c', 'c']]);
+      modules.set('b', createMockNode('b', "require('./c')\nreturn {}", ['c'], bMappings));
       modules.set('c', createMockNode('c', 'return {}'));
 
       const graph = createMockGraph('main', modules, ['c', 'a', 'b', 'main']);
@@ -242,9 +284,15 @@ describe('generateBundle', () => {
 
     test('entry point comes last in output', () => {
       const modules = new Map<string, ModuleNode>();
+      const mainMappings = new Map([['./utils', 'utils']]);
       modules.set(
         'main',
-        createMockNode('main', "local utils = require('utils')\nprint('entry')", ['utils'])
+        createMockNode(
+          'main',
+          "local utils = require('./utils')\nprint('entry')",
+          ['utils'],
+          mainMappings
+        )
       );
       modules.set('utils', createMockNode('utils', 'return {}'));
 

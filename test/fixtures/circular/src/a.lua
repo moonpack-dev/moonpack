@@ -1,2 +1,2 @@
-local b = require("b")
+local b = require('./b')
 return {}

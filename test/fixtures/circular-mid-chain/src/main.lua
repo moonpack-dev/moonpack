@@ -1,4 +1,4 @@
-local a = require 'a'
+local a = require './a'
 
 script_name("CircularMidChainTest")
 

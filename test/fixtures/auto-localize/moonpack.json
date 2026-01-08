@@ -1,6 +1,5 @@
 {
   "name": "AutoLocalizeTest",
   "version": "1.0.0",
-  "entry": "src/main.lua",
-  "external": ["lib.samp.events"]
+  "entry": "src/main.lua"
 }

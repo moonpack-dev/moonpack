@@ -16,8 +16,8 @@ local sampev = require 'samp.events'
 local sampev2 = require 'lib.samp.events'
 local sf = require 'lib.sampfuncs'
 
-local utils = require 'core.utils'
-local config = require 'core.config'
+local utils = require './core/utils'
+local config = require './core/config'
 
 script_name("RealWorldTest")
 script_author("Test")

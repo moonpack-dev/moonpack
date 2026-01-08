@@ -10,7 +10,6 @@ const LOCAL_CONFIG_FILENAME = 'moonpack.local.json';
 const DEFAULT_ENTRY = 'src/main.lua';
 const DEFAULT_OUT_DIR = 'dist';
 const DEFAULT_VERSION = '0.1.0';
-const DEFAULT_EXTERNALS = ['samp.events', 'mimgui', 'imgui'];
 
 export async function initProject(options: InitOptions): Promise<void> {
   const { cwd } = options;
@@ -61,7 +60,6 @@ export async function initProject(options: InitOptions): Promise<void> {
     name: projectName,
     version: DEFAULT_VERSION,
     entry: DEFAULT_ENTRY,
-    external: DEFAULT_EXTERNALS,
   };
 
   await Bun.write(configPath, JSON.stringify(config, null, 2) + '\n');

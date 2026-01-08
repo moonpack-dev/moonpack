@@ -5,7 +5,6 @@ export interface MoonpackConfig {
   version?: string | undefined;
   entry: string;
   outDir: string;
-  external: string[];
 }
 
 export interface RawConfig {
@@ -13,7 +12,6 @@ export interface RawConfig {
   version?: unknown;
   entry?: unknown;
   outDir?: unknown;
-  external?: unknown;
 }
 
 export function validateConfig(raw: RawConfig, configPath: string): MoonpackConfig {
@@ -35,14 +33,6 @@ export function validateConfig(raw: RawConfig, configPath: string): MoonpackConf
     errors.push("'outDir' must be a string if provided");
   }
 
-  if (raw.external !== undefined) {
-    if (!Array.isArray(raw.external)) {
-      errors.push("'external' must be an array of strings if provided");
-    } else if (!raw.external.every((item): item is string => typeof item === 'string')) {
-      errors.push("'external' must contain only strings");
-    }
-  }
-
   if (errors.length > 0) {
     throw new MoonpackError(
       `Invalid config at ${configPath}:\n  - ${errors.join('\n  - ')}`,
@@ -56,6 +46,5 @@ export function validateConfig(raw: RawConfig, configPath: string): MoonpackConf
     version: raw.version as string | undefined,
     entry: raw.entry as string,
     outDir: typeof raw.outDir === 'string' ? raw.outDir : 'dist',
-    external: Array.isArray(raw.external) ? (raw.external as string[]) : [],
   };
 }

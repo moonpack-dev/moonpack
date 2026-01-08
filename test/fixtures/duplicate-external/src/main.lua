@@ -1,5 +1,5 @@
 local sampev = require('lib.samp.events')
-local chat = require('features.chat')
+local chat = require('./features/chat')
 
 function sampev.onServerMessage(color, text)
   print("Main handler")

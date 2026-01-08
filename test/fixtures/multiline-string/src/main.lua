@@ -4,7 +4,7 @@ local code = [[
 ]]
 local result = loadstring(code)()
 
-local utils = require 'core.utils'
+local utils = require './core/utils'
 
 script_name("LoadstringTest")
 
