@@ -21,5 +21,8 @@
     "@types/bun": "latest",
     "lefthook": "^2.0.13",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0"
   }
 }

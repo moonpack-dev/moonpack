@@ -2,34 +2,37 @@ import { watch } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { loadConfig } from '../config/loader.ts';
 import { formatError } from '../utils/errors.ts';
-import type { Logger } from '../utils/logger.ts';
+import * as ui from '../utils/ui.ts';
 import { build } from './build.ts';
+
+const DEFAULT_OUT_DIR = 'dist';
+const DEBOUNCE_MS = 100;
 
 export interface WatchOptions {
   cwd: string;
-  logger: Logger;
 }
 
-/** Watches for file changes and rebuilds automatically. */
 export async function watchProject(options: WatchOptions): Promise<void> {
-  const { cwd, logger } = options;
+  const { cwd } = options;
+  const spinner = ui.createSpinner();
 
+  spinner.start('Loading configuration');
   const { config, projectRoot } = await loadConfig(cwd);
+  spinner.stop('Configuration loaded');
+
   const sourceDir = dirname(join(projectRoot, config.entry));
   const outDir = isAbsolute(config.outDir) ? config.outDir : join(projectRoot, config.outDir);
 
-  if (config.outDir === 'dist') {
-    logger.warn(
-      'outDir is "dist" - set your MoonLoader path in moonpack.local.json for hot-reload'
-    );
+  if (config.outDir === DEFAULT_OUT_DIR) {
+    ui.warn('outDir is "dist" - set your MoonLoader path in moonpack.local.json for hot-reload');
   }
 
-  await deployReloader(outDir, config.name, logger);
+  await deployReloader(outDir, config.name);
 
-  logger.info(`Watching ${sourceDir} for changes...`);
-  logger.info('Press Ctrl+C to stop\n');
+  ui.step('Running initial build');
+  await runBuild(cwd);
 
-  await runBuild(options, logger);
+  ui.info(`Watching ${sourceDir} for changes...\n`);
 
   let debounce: Timer | null = null;
   const watcher = watch(sourceDir, { recursive: true }, (_event, filename) => {
@@ -37,43 +40,42 @@ export async function watchProject(options: WatchOptions): Promise<void> {
 
     if (debounce) clearTimeout(debounce);
     debounce = setTimeout(async () => {
-      logger.info(`\nFile changed: ${filename}`);
-      await runBuild(options, logger);
-    }, 100);
+      ui.step(`File changed: ${filename}`);
+      await runBuild(cwd);
+    }, DEBOUNCE_MS);
   });
 
   process.on('SIGINT', async () => {
     watcher.close();
-    await cleanupReloader(outDir, config.name, logger);
-    logger.info('\nStopped watching.');
+    await cleanupReloader(outDir, config.name);
+    ui.outro('Stopped watching');
     process.exit(0);
   });
 
   await new Promise(() => {});
 }
 
-async function runBuild(options: WatchOptions, logger: Logger): Promise<void> {
+async function runBuild(cwd: string): Promise<void> {
   try {
-    await build({ cwd: options.cwd, logger });
+    await build({ cwd });
   } catch (error) {
-    logger.error(formatError(error));
+    ui.error(formatError(error));
   }
 }
 
-async function deployReloader(outDir: string, scriptName: string, logger: Logger): Promise<void> {
+async function deployReloader(outDir: string, scriptName: string): Promise<void> {
   const reloaderPath = join(outDir, `.${scriptName}-reloader.lua`);
   const reloaderScript = generateReloaderScript(scriptName);
   await Bun.write(reloaderPath, reloaderScript);
-  logger.info(`Deployed hot-reloader: .${scriptName}-reloader.lua`);
+  ui.success(`Deployed hot-reloader: .${scriptName}-reloader.lua`);
 }
 
-async function cleanupReloader(outDir: string, scriptName: string, logger: Logger): Promise<void> {
+async function cleanupReloader(outDir: string, scriptName: string): Promise<void> {
   const reloaderPath = join(outDir, `.${scriptName}-reloader.lua`);
 
   try {
     const { unlink } = await import('node:fs/promises');
     await unlink(reloaderPath).catch(() => {});
-    logger.info('Cleaned up reloader');
   } catch {}
 }
 

@@ -1,55 +1,91 @@
 import { basename, join } from 'node:path';
-import type { Logger } from '../utils/logger.ts';
+import * as ui from '../utils/ui.ts';
 
 export interface InitOptions {
   cwd: string;
-  logger: Logger;
 }
 
 const CONFIG_FILENAME = 'moonpack.json';
+const LOCAL_CONFIG_FILENAME = 'moonpack.local.json';
 const DEFAULT_ENTRY = 'src/main.lua';
+const DEFAULT_OUT_DIR = 'dist';
+const DEFAULT_VERSION = '0.1.0';
+const DEFAULT_EXTERNALS = ['samp.events', 'mimgui', 'imgui'];
 
-/** Initializes a new moonpack project with config files and entry point. */
 export async function initProject(options: InitOptions): Promise<void> {
-  const { cwd, logger } = options;
+  const { cwd } = options;
 
   const configPath = join(cwd, CONFIG_FILENAME);
   if (await Bun.file(configPath).exists()) {
-    logger.error(`${CONFIG_FILENAME} already exists`);
+    ui.error(`${CONFIG_FILENAME} already exists in this directory`);
     process.exit(1);
   }
 
-  const projectName = sanitizeName(basename(cwd));
+  const defaultName = sanitizeName(basename(cwd));
+
+  const nameInput = await ui.text({
+    message: 'Project name',
+    placeholder: defaultName,
+    defaultValue: defaultName,
+    validate: (value) => {
+      if (!value.trim()) return 'Project name is required';
+      if (!/^[a-z0-9-]+$/.test(value)) {
+        return 'Use lowercase letters, numbers, and hyphens only';
+      }
+      return undefined;
+    },
+  });
+
+  if (ui.isCancel(nameInput)) {
+    ui.cancel('Init cancelled');
+    process.exit(0);
+  }
+
+  const projectName = nameInput;
+
+  const moonloaderPath = await ui.text({
+    message: 'MoonLoader scripts path',
+    placeholder: `Leave empty for ./${DEFAULT_OUT_DIR}`,
+  });
+
+  if (ui.isCancel(moonloaderPath)) {
+    ui.cancel('Init cancelled');
+    process.exit(0);
+  }
+
+  const outDir = (moonloaderPath || '').trim() || DEFAULT_OUT_DIR;
+
+  const createdFiles: string[] = [];
 
   const config = {
     name: projectName,
-    version: '0.1.0',
+    version: DEFAULT_VERSION,
     entry: DEFAULT_ENTRY,
-    external: ['samp.events', 'mimgui', 'imgui'],
+    external: DEFAULT_EXTERNALS,
   };
 
   await Bun.write(configPath, JSON.stringify(config, null, 2) + '\n');
-  logger.info(`Created ${CONFIG_FILENAME}`);
+  createdFiles.push(CONFIG_FILENAME);
 
-  const localConfigPath = join(cwd, 'moonpack.local.json');
+  const localConfigPath = join(cwd, LOCAL_CONFIG_FILENAME);
   if (!(await Bun.file(localConfigPath).exists())) {
-    const localConfig = { outDir: 'dist' };
+    const localConfig = { outDir };
     await Bun.write(localConfigPath, JSON.stringify(localConfig, null, 2) + '\n');
-    logger.info('Created moonpack.local.json');
+    createdFiles.push(LOCAL_CONFIG_FILENAME);
   }
 
   const gitignorePath = join(cwd, '.gitignore');
-  const gitignoreEntries = ['moonpack.local.json', 'dist/'];
+  const gitignoreEntries = [LOCAL_CONFIG_FILENAME, `${DEFAULT_OUT_DIR}/`];
   if (await Bun.file(gitignorePath).exists()) {
     const existing = await Bun.file(gitignorePath).text();
     const missing = gitignoreEntries.filter((e) => !existing.includes(e));
     if (missing.length > 0) {
       await Bun.write(gitignorePath, existing.trimEnd() + '\n' + missing.join('\n') + '\n');
-      logger.info('Updated .gitignore');
+      createdFiles.push('.gitignore (updated)');
     }
   } else {
     await Bun.write(gitignorePath, gitignoreEntries.join('\n') + '\n');
-    logger.info('Created .gitignore');
+    createdFiles.push('.gitignore');
   }
 
   const entryPath = join(cwd, DEFAULT_ENTRY);
@@ -57,10 +93,11 @@ export async function initProject(options: InitOptions): Promise<void> {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(join(cwd, 'src'), { recursive: true });
     await Bun.write(entryPath, generateEntryTemplate(projectName));
-    logger.info(`Created ${DEFAULT_ENTRY}`);
+    createdFiles.push(DEFAULT_ENTRY);
   }
 
-  logger.info('\nRun `moonpack build` to bundle your project');
+  ui.success(`Created ${createdFiles.join(', ')}`);
+  ui.info(`Run 'moonpack build' to bundle your project`);
 }
 
 function sanitizeName(name: string): string {

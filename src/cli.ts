@@ -3,7 +3,9 @@ import { build } from './commands/build.ts';
 import { initProject } from './commands/init.ts';
 import { watchProject } from './commands/watch.ts';
 import { formatError, MoonpackError } from './utils/errors.ts';
-import { createLogger } from './utils/logger.ts';
+import * as ui from './utils/ui.ts';
+
+const VERSION = '0.1.0';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -14,6 +16,11 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  if (command === '--version' || command === '-v') {
+    console.log(`moonpack ${VERSION}`);
+    process.exit(0);
+  }
+
   if (command === 'init') {
     await runInit();
   } else if (command === 'build') {
@@ -21,87 +28,81 @@ async function main(): Promise<void> {
   } else if (command === 'watch') {
     await runWatch();
   } else {
-    console.error(`Unknown command: ${command}`);
-    console.error('Run "moonpack help" for usage information.');
+    ui.error(`Unknown command: ${command}`);
+    ui.message('Run "moonpack help" for usage information.');
     process.exit(1);
   }
 }
 
 function printHelp(): void {
-  console.log(`moonpack - Build tool for MoonLoader Lua scripts
+  ui.intro(`moonpack v${VERSION}`);
 
-Usage:
-  moonpack <command>
+  ui.message('Build tool for MoonLoader Lua scripts');
 
-Commands:
-  init     Initialize a new project
-  build    Bundle source files into a single Lua file
-  watch    Watch for changes and rebuild automatically
-  help     Show this help message
+  ui.note(
+    [
+      'init     Create a new moonpack project',
+      'build    Bundle your Lua modules into one file',
+      'watch    Rebuild on file changes with hot-reload',
+    ].join('\n'),
+    'Commands'
+  );
 
-Examples:
-  moonpack init     Create moonpack.json and src/main.lua
-  moonpack build    Build the project in the current directory
-  moonpack watch    Watch and rebuild on changes
-`);
+  ui.outro('Run moonpack <command> to get started');
 }
 
 async function runBuild(): Promise<void> {
-  const logger = createLogger();
+  ui.intro('moonpack build');
 
   try {
-    const result = await build({
-      cwd: process.cwd(),
-      logger,
-    });
+    const result = await build({ cwd: process.cwd() });
 
     if (result.success) {
-      logger.info('Build completed successfully!');
+      ui.outro('Build completed!');
       process.exit(0);
     } else {
+      ui.outro('Build failed');
       process.exit(1);
     }
   } catch (error) {
-    logger.error(formatError(error));
+    ui.error(formatError(error));
     if (error instanceof MoonpackError && error.details) {
       const details = error.details;
       if ('cycle' in details) {
-        logger.error('Fix the circular dependency to continue.');
+        ui.message('Fix the circular dependency to continue.');
       }
     }
+    ui.outro('Build failed');
     process.exit(1);
   }
 }
 
 async function runWatch(): Promise<void> {
-  const logger = createLogger();
+  ui.intro('moonpack watch');
 
   try {
-    await watchProject({
-      cwd: process.cwd(),
-      logger,
-    });
+    await watchProject({ cwd: process.cwd() });
   } catch (error) {
-    logger.error(formatError(error));
+    ui.error(formatError(error));
+    ui.outro('Watch failed');
     process.exit(1);
   }
 }
 
 async function runInit(): Promise<void> {
-  const logger = createLogger();
+  ui.intro('moonpack init');
 
   try {
-    await initProject({
-      cwd: process.cwd(),
-      logger,
-    });
+    await initProject({ cwd: process.cwd() });
+    ui.outro('Project initialized!');
   } catch (error) {
-    logger.error(formatError(error));
+    ui.error(formatError(error));
+    ui.outro('Init failed');
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.error('Unexpected error:', error);
+  ui.error(`Unexpected error: ${error}`);
   process.exit(1);
 });

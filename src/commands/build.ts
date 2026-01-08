@@ -1,52 +1,57 @@
 import { dirname, isAbsolute, join } from 'node:path';
 import {
   buildDependencyGraph,
+  type DependencyGraph,
   formatLintWarnings,
   generateBundle,
   lintGraph,
 } from '../bundler/index.ts';
 import { loadConfig } from '../config/loader.ts';
 import { ensureDirectory, writeTextFile } from '../utils/fs.ts';
-import type { Logger } from '../utils/logger.ts';
+import * as ui from '../utils/ui.ts';
 
 export interface BuildResult {
   success: boolean;
   outputPath?: string;
-  error?: Error;
 }
 
 export interface BuildOptions {
   cwd: string;
-  logger: Logger;
 }
 
-/** Loads moonpack.json from cwd and outputs bundled Lua to the configured outDir. */
 export async function build(options: BuildOptions): Promise<BuildResult> {
-  const { cwd, logger } = options;
+  const { cwd } = options;
+  const spinner = ui.createSpinner();
 
-  logger.info('Loading configuration...');
+  spinner.start('Loading configuration');
   const { config, projectRoot } = await loadConfig(cwd);
+  spinner.stop('Configuration loaded');
 
   const entryPath = join(projectRoot, config.entry);
   const sourceRoot = dirname(entryPath);
 
-  logger.info(`Building ${config.name}...`);
-  logger.info(`Entry: ${config.entry}`);
+  spinner.start(`Building ${config.name}`);
 
-  const graph = await buildDependencyGraph({
-    entryPath,
-    sourceRoot,
-    external: new Set(config.external),
-  });
+  let graph: DependencyGraph;
+  try {
+    graph = await buildDependencyGraph({
+      entryPath,
+      sourceRoot,
+      external: new Set(config.external),
+    });
+  } catch (error) {
+    spinner.stop('Build failed');
+    throw error;
+  }
 
   const moduleCount = graph.modules.size;
-  logger.info(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
+  spinner.stop(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
 
   const externalModules = new Set(config.external);
   const lintResult = lintGraph(graph, externalModules);
   const warnings = formatLintWarnings(lintResult);
   for (const warning of warnings) {
-    logger.warn(warning);
+    ui.warn(warning);
   }
 
   const bundle = generateBundle({ graph, config });
@@ -59,7 +64,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
 
   await writeTextFile(outputPath, bundle);
 
-  logger.info(`Output: ${config.outDir}/${outputFileName}`);
+  ui.step(`Output: ${config.outDir}/${outputFileName}`);
 
   return { success: true, outputPath };
 }
