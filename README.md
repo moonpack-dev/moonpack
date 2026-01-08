@@ -39,7 +39,6 @@ moonpack watch
 | `name` | Yes | Output filename (without .lua) |
 | `version` | No | Included in bundle header |
 | `entry` | Yes | Entry point path |
-| `external` | No | Modules to exclude from bundling |
 
 `moonpack.local.json` (personal, add to .gitignore):
 
@@ -51,11 +50,22 @@ The local config overrides the shared config, useful for machine-specific paths 
 
 ## Module Resolution
 
-Uses Lua's dot notation. `require('core.utils')` resolves to:
-1. `src/core/utils.lua`
-2. `src/core/utils/init.lua`
+Path-based requires are bundled, non-path requires are left alone:
 
-External modules (e.g., `lib.samp.events`) are left as `require()` calls.
+```lua
+-- Bundled (local modules)
+require('./utils')           -- same directory
+require('./core/config')     -- subdirectory
+require('../shared/lib')     -- parent directory
+
+-- Not bundled (external/system)
+require('lib.samp.events')   -- left as require()
+require('mimgui')            -- left as require()
+```
+
+Paths resolve to:
+1. `./utils` → `src/utils.lua`
+2. `./utils` → `src/utils/init.lua` (if no .lua file)
 
 ## Features
 
