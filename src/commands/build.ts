@@ -1,5 +1,10 @@
 import { dirname, isAbsolute, join } from 'node:path';
-import { buildDependencyGraph, generateBundle } from '../bundler/index.ts';
+import {
+  buildDependencyGraph,
+  formatLintWarnings,
+  generateBundle,
+  lintGraph,
+} from '../bundler/index.ts';
 import { loadConfig } from '../config/loader.ts';
 import { ensureDirectory, writeTextFile } from '../utils/fs.ts';
 import type { Logger } from '../utils/logger.ts';
@@ -36,6 +41,13 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
 
   const moduleCount = graph.modules.size;
   logger.info(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
+
+  const externalModules = new Set(config.external);
+  const lintResult = lintGraph(graph, externalModules);
+  const warnings = formatLintWarnings(lintResult);
+  for (const warning of warnings) {
+    logger.warn(warning);
+  }
 
   const bundle = generateBundle({ graph, config });
 

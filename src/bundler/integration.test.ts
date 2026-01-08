@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { MoonpackError } from '../utils/errors.ts';
 import { generateBundle } from './codegen.ts';
 import { buildDependencyGraph } from './graph.ts';
+import { lintGraph } from './lint.ts';
 
 const FIXTURES_DIR = join(import.meta.dir, '../../test/fixtures');
 
@@ -42,7 +43,10 @@ async function buildFixture(fixtureName: string) {
     },
   });
 
-  return { graph, bundle, config };
+  const externalSet = new Set(config.external ?? []);
+  const lintResult = lintGraph(graph, externalSet);
+
+  return { graph, bundle, config, lintResult };
 }
 
 describe('fixture integration tests', () => {
@@ -160,6 +164,45 @@ describe('fixture integration tests', () => {
         expect((e as MoonpackError).code).toBe('MODULE_NOT_FOUND');
         expect((e as MoonpackError).message).toContain('does.not.exist');
       }
+    });
+  });
+
+  describe('lint warnings', () => {
+    test('duplicate-external - detects duplicate sampev handler across files', async () => {
+      const { lintResult, bundle } = await buildFixture('duplicate-external');
+
+      expect(bundle).toContain('__modules');
+      expect(lintResult.duplicateAssignments).toHaveLength(1);
+      expect(lintResult.duplicateAssignments[0].propertyPath).toBe('sampev.onServerMessage');
+      expect(lintResult.duplicateAssignments[0].assignments).toHaveLength(2);
+
+      const files = lintResult.duplicateAssignments[0].assignments.map((a) => a.filePath);
+      expect(files.some((f) => f.includes('main.lua'))).toBe(true);
+      expect(files.some((f) => f.includes('chat.lua'))).toBe(true);
+    });
+
+    test('basic - no warnings for clean codebase', async () => {
+      const { lintResult } = await buildFixture('basic');
+
+      expect(lintResult.duplicateAssignments).toHaveLength(0);
+    });
+  });
+
+  describe('auto-localization', () => {
+    test('auto-localize - localizes functions in modules but not entry', async () => {
+      const { bundle } = await buildFixture('auto-localize');
+
+      expect(bundle).toContain('__modules["helpers"]');
+      expect(bundle).toContain('local function log(msg)');
+      expect(bundle).toContain('local function greet(name)');
+
+      expect(bundle).toContain('function main()');
+      expect(bundle).toContain('function onScriptTerminate(');
+      expect(bundle).toContain('function sampev.onServerMessage(');
+
+      expect(bundle).not.toMatch(/local function main\(/);
+      expect(bundle).not.toMatch(/local function onScriptTerminate\(/);
+      expect(bundle).not.toMatch(/local function sampev\.onServerMessage\(/);
     });
   });
 });

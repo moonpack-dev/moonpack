@@ -1,6 +1,6 @@
 import type { MoonpackConfig } from '../config/schema.ts';
 import type { DependencyGraph } from './graph.ts';
-import { transformRequiresToLoad } from './parser.ts';
+import { autoLocalizeFunctions, transformRequiresToLoad } from './parser.ts';
 
 export interface GenerateOptions {
   graph: DependencyGraph;
@@ -67,7 +67,8 @@ function generateModuleWrapper(
   source: string,
   bundledModules: Set<string>
 ): string {
-  const transformedSource = transformRequiresToLoad(source, bundledModules);
+  const localizedSource = autoLocalizeFunctions(source);
+  const transformedSource = transformRequiresToLoad(localizedSource, bundledModules);
   const indentedSource = indentCode(transformedSource, '    ');
 
   return `__modules["${moduleName}"] = function()

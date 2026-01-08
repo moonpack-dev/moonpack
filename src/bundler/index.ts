@@ -6,6 +6,7 @@ export {
   type ModuleNode,
 } from './graph.ts';
 export {
+  autoLocalizeFunctions,
   parseRequireStatements,
   type RequireStatement,
   transformRequiresToLoad,
@@ -17,3 +18,11 @@ export {
   type ResolveResult,
   resolveModulePath,
 } from './resolver.ts';
+export {
+  type DuplicateAssignmentWarning,
+  type ExternalAssignment,
+  formatLintWarnings,
+  lintGraph,
+  type LintResult,
+  type MoonLoaderEventInModuleWarning,
+} from './lint.ts';

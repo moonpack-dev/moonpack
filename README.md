@@ -55,7 +55,15 @@ Uses Lua's dot notation. `require('core.utils')` resolves to:
 1. `src/core/utils.lua`
 2. `src/core/utils/init.lua`
 
-External modules (e.g., `samp.events`) are left as `require()` calls.
+External modules (e.g., `lib.samp.events`) are left as `require()` calls.
+
+## Features
+
+**Auto-localization**: Functions in modules are automatically prefixed with `local`. Dotted functions like `sampev.onServerMessage` are preserved.
+
+**Lint warnings**: Detects common issues during build:
+- Duplicate assignments to external module properties across files
+- MoonLoader events (`main`, `onScriptTerminate`, etc.) defined in modules instead of entry point
 
 ## License
 

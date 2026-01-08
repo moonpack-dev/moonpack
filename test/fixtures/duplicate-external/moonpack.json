@@ -1,0 +1,5 @@
+{
+  "name": "DuplicateExternalTest",
+  "entry": "src/main.lua",
+  "external": ["lib.samp.events"]
+}

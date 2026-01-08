@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { parseRequireStatements, transformRequiresToLoad } from './parser.ts';
+import {
+  autoLocalizeFunctions,
+  parseRequireStatements,
+  transformRequiresToLoad,
+} from './parser.ts';
 
 describe('parseRequireStatements', () => {
   describe('standard require syntax', () => {
@@ -315,6 +319,264 @@ local real = require("utils")`;
       const source = `local x = 1`;
       const result = transformRequiresToLoad(source, bundledModules);
       expect(result).toBe(source);
+    });
+  });
+});
+
+describe('autoLocalizeFunctions', () => {
+  describe('basic localization', () => {
+    test('adds local to simple function declaration', () => {
+      const source = `function foo() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function foo() end`);
+    });
+
+    test('adds local to multiple functions', () => {
+      const source = `function foo() end
+function bar() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function foo() end
+local function bar() end`);
+    });
+
+    test('handles function with parameters', () => {
+      const source = `function add(a, b) return a + b end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function add(a, b) return a + b end`);
+    });
+
+    test('handles function with underscores', () => {
+      const source = `function my_helper_func() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function my_helper_func() end`);
+    });
+
+    test('handles function with numbers in name', () => {
+      const source = `function handler123() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function handler123() end`);
+    });
+
+    test('handles function with leading underscore', () => {
+      const source = `function _private() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function _private() end`);
+    });
+
+    test('handles function at start of file', () => {
+      const source = `function main() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function main() end`);
+    });
+
+    test('handles indented function', () => {
+      const source = `    function helper() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`    local function helper() end`);
+    });
+  });
+
+  describe('already local functions', () => {
+    test('does not modify already local functions', () => {
+      const source = `local function foo() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function foo() end`);
+    });
+
+    test('handles multiple spaces between local and function', () => {
+      const source = `local      function foo() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local      function foo() end`);
+    });
+
+    test('handles tab between local and function', () => {
+      const source = `local\tfunction foo() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local\tfunction foo() end`);
+    });
+
+    test('returns unchanged if no functions to localize', () => {
+      const source = `local x = 1
+local function foo() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(source);
+    });
+  });
+
+  describe('dotted and method syntax (should NOT localize)', () => {
+    test('does not modify function with dot in name', () => {
+      const source = `function sampev.onServerMessage() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`function sampev.onServerMessage() end`);
+    });
+
+    test('does not modify function with multiple dots', () => {
+      const source = `function a.b.c() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`function a.b.c() end`);
+    });
+
+    test('does not modify colon method syntax', () => {
+      const source = `function Player:getName() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`function Player:getName() end`);
+    });
+
+    test('does not modify colon method with dots', () => {
+      const source = `function game.Player:spawn(x, y, z) end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`function game.Player:spawn(x, y, z) end`);
+    });
+
+    test('handles mixed simple and dotted functions', () => {
+      const source = `function helper() end
+function sampev.onChat() end
+function utils() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function helper() end
+function sampev.onChat() end
+local function utils() end`);
+    });
+  });
+
+  describe('anonymous functions (should NOT localize)', () => {
+    test('does not modify anonymous function assignment', () => {
+      const source = `local f = function() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local f = function() end`);
+    });
+
+    test('does not modify anonymous function with params', () => {
+      const source = `local add = function(a, b) return a + b end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local add = function(a, b) return a + b end`);
+    });
+
+    test('does not modify anonymous function in table', () => {
+      const source = `local t = { callback = function() end }`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local t = { callback = function() end }`);
+    });
+  });
+
+  describe('strings and comments (should NOT localize)', () => {
+    test('does not modify function inside double-quoted string', () => {
+      const source = `local s = "function foo() end"`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local s = "function foo() end"`);
+    });
+
+    test('does not modify function inside single-quoted string', () => {
+      const source = `local s = 'function foo() end'`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local s = 'function foo() end'`);
+    });
+
+    test('does not modify function inside multiline string', () => {
+      const source = `local s = [[function foo() end]]`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local s = [[function foo() end]]`);
+    });
+
+    test('does not modify function inside long bracket string', () => {
+      const source = `local s = [=[function foo() end]=]`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local s = [=[function foo() end]=]`);
+    });
+
+    test('does not modify function inside line comment', () => {
+      const source = `-- function foo() end
+function bar() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`-- function foo() end
+local function bar() end`);
+    });
+
+    test('does not modify function inside block comment', () => {
+      const source = `--[[function foo() end]]
+function bar() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`--[[function foo() end]]
+local function bar() end`);
+    });
+
+    test('does not modify function inside multiline block comment', () => {
+      const source = `--[[
+function foo() end
+]]
+function bar() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`--[[
+function foo() end
+]]
+local function bar() end`);
+    });
+  });
+
+  describe('word boundary protection', () => {
+    test('does not match myfunction identifier', () => {
+      const source = `local myfunction = 1`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local myfunction = 1`);
+    });
+
+    test('does not match xfunction identifier', () => {
+      const source = `local xfunction = true`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local xfunction = true`);
+    });
+  });
+
+  describe('complex scenarios', () => {
+    test('handles nested functions', () => {
+      const source = `function outer()
+    function inner() end
+end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function outer()
+    local function inner() end
+end`);
+    });
+
+    test('handles multiple functions on same line', () => {
+      const source = `function a() end function b() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local function a() end local function b() end`);
+    });
+
+    test('handles function after semicolon', () => {
+      const source = `local x = 1; function foo() end`;
+      const result = autoLocalizeFunctions(source);
+      expect(result).toBe(`local x = 1; local function foo() end`);
+    });
+
+    test('handles real-world module pattern (localizes all simple functions)', () => {
+      const source = `local sampev = require("lib.samp.events")
+
+function helper()
+    print("helper")
+end
+
+function process(data)
+    return data
+end
+
+function sampev.onServerMessage(color, text)
+    return true
+end
+
+function M.export()
+    return helper()
+end`;
+      const result = autoLocalizeFunctions(source);
+
+      expect(result).toContain('local function helper()');
+      expect(result).toContain('local function process(');
+      expect(result).toContain('function sampev.onServerMessage(');
+      expect(result).toContain('function M.export()');
+
+      expect(result).not.toContain('local function sampev.');
+      expect(result).not.toContain('local function M.');
     });
   });
 });

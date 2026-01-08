@@ -237,6 +237,51 @@ function getLineAndColumn(source: string, position: number): { line: number; col
   return { line, column: position - lastNewline };
 }
 
+/** Adds `local` prefix to function declarations that don't have dots in the name. */
+export function autoLocalizeFunctions(source: string): string {
+  const stringSpans = findAllStringSpans(source);
+  const commentSpans = findAllCommentSpans(source, stringSpans);
+  const excludedRanges = [...stringSpans, ...commentSpans];
+
+  const replacements: Array<{ start: number; end: number; replacement: string }> = [];
+
+  const functionPattern = /\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = functionPattern.exec(source)) !== null) {
+    if (isInsideRange(match.index, excludedRanges)) {
+      continue;
+    }
+
+    const functionName = match[1];
+    if (!functionName) continue;
+
+    const beforeMatch = source.substring(Math.max(0, match.index - 50), match.index);
+    if (/local\s*$/.test(beforeMatch)) {
+      continue;
+    }
+
+    replacements.push({
+      start: match.index,
+      end: match.index + 'function'.length,
+      replacement: 'local function',
+    });
+  }
+
+  if (replacements.length === 0) {
+    return source;
+  }
+
+  replacements.sort((a, b) => b.start - a.start);
+
+  let result = source;
+  for (const r of replacements) {
+    result = result.substring(0, r.start) + r.replacement + result.substring(r.end);
+  }
+
+  return result;
+}
+
 /** Replaces require() calls for bundled modules with __load() calls. External modules remain unchanged. */
 export function transformRequiresToLoad(source: string, bundledModules: Set<string>): string {
   const stringSpans = findAllStringSpans(source);
