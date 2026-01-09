@@ -39,10 +39,45 @@ export function generateBundle(options: GenerateOptions): string {
   return lines.join('\n');
 }
 
+function escapeLuaString(str: string): string {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
 function generateHeader(config: MoonpackConfig): string {
   const versionPart = config.version ? ` v${config.version}` : '';
-  return `-- ${config.name}${versionPart}
--- Built with moonpack`;
+  const lines: string[] = [
+    `-- ${config.name}${versionPart}`,
+    '-- Built with moonpack',
+    '',
+    `script_name('${escapeLuaString(config.name)}')`,
+  ];
+
+  if (config.version) {
+    lines.push(`script_version('${escapeLuaString(config.version)}')`);
+  }
+
+  if (config.author) {
+    if (Array.isArray(config.author)) {
+      const authors = config.author.map((a) => `'${escapeLuaString(a)}'`).join(', ');
+      lines.push(`script_authors(${authors})`);
+    } else {
+      lines.push(`script_author('${escapeLuaString(config.author)}')`);
+    }
+  }
+
+  if (config.description) {
+    lines.push(`script_description('${escapeLuaString(config.description)}')`);
+  }
+
+  if (config.url) {
+    lines.push(`script_url('${escapeLuaString(config.url)}')`);
+  }
+
+  return lines.join('\n');
 }
 
 function generateModuleLoader(): string {
