@@ -1,0 +1,34 @@
+name: Publish Next
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-next:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test
+        run: bun test
+
+      - name: Set prerelease version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          NEXT_VERSION="${VERSION}-next.${GITHUB_RUN_NUMBER}.${SHORT_SHA}"
+          jq --arg v "$NEXT_VERSION" '.version = $v' package.json > tmp.json && mv tmp.json package.json
+          echo "Publishing version: $NEXT_VERSION"
+
+      - name: Publish to npm
+        run: bun publish --tag next
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
