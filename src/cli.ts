@@ -1,11 +1,10 @@
 #!/usr/bin/env bun
+import packageJson from '../package.json';
 import { build } from './commands/build.ts';
 import { initProject } from './commands/init.ts';
 import { watchProject } from './commands/watch.ts';
 import { formatError, MoonpackError } from './utils/errors.ts';
 import * as ui from './utils/ui.ts';
-
-const VERSION = '0.1.0';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -17,7 +16,7 @@ async function main(): Promise<void> {
   }
 
   if (command === '--version' || command === '-v') {
-    console.log(`moonpack ${VERSION}`);
+    console.log(`moonpack ${packageJson.version}`);
     process.exit(0);
   }
 
@@ -35,7 +34,7 @@ async function main(): Promise<void> {
 }
 
 function printHelp(): void {
-  ui.intro(`moonpack v${VERSION}`);
+  ui.intro(`moonpack v${packageJson.version}`);
 
   ui.message('Build tool for MoonLoader Lua scripts');
 
