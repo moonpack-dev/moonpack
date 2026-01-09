@@ -292,6 +292,52 @@ function process() end`,
 
     expect(result.moonloaderEventsInModules).toHaveLength(0);
   });
+
+  test('does not warn for events inside strings', () => {
+    const graph = createMockGraph([
+      {
+        name: 'entry',
+        path: '/src/entry.lua',
+        source: `local mod = require('./mod')`,
+      },
+      {
+        name: 'mod',
+        path: '/src/mod.lua',
+        source: `local code = [[
+function onSystemMessage(type, text)
+    print(text)
+end
+]]`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.moonloaderEventsInModules).toHaveLength(0);
+  });
+
+  test('does not warn for events inside comments', () => {
+    const graph = createMockGraph([
+      {
+        name: 'entry',
+        path: '/src/entry.lua',
+        source: `local mod = require('./mod')`,
+      },
+      {
+        name: 'mod',
+        path: '/src/mod.lua',
+        source: `-- function onSystemMessage(type, text) end
+--[[
+function main()
+end
+]]`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.moonloaderEventsInModules).toHaveLength(0);
+  });
 });
 
 describe('formatLintWarnings', () => {

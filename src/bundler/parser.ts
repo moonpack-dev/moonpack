@@ -125,7 +125,7 @@ function deduplicateMatches(matches: RequireMatch[]): RequireMatch[] {
   return result;
 }
 
-function findAllStringSpans(source: string): StringSpan[] {
+export function findAllStringSpans(source: string): StringSpan[] {
   const spans: StringSpan[] = [];
   let i = 0;
 
@@ -186,7 +186,7 @@ function matchLongBracket(source: string, start: number): { end: number } | null
   return null;
 }
 
-function findAllCommentSpans(source: string, stringSpans: StringSpan[]): CommentSpan[] {
+export function findAllCommentSpans(source: string, stringSpans: StringSpan[]): CommentSpan[] {
   const spans: CommentSpan[] = [];
   let i = 0;
 
@@ -220,7 +220,10 @@ function findAllCommentSpans(source: string, stringSpans: StringSpan[]): Comment
   return spans;
 }
 
-function isInsideRange(position: number, ranges: Array<{ start: number; end: number }>): boolean {
+export function isInsideRange(
+  position: number,
+  ranges: Array<{ start: number; end: number }>
+): boolean {
   for (const range of ranges) {
     if (position >= range.start && position <= range.end) {
       return true;

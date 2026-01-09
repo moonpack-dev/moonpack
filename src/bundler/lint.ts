@@ -1,4 +1,5 @@
 import type { DependencyGraph } from './graph.ts';
+import { findAllCommentSpans, findAllStringSpans, isInsideRange } from './parser.ts';
 
 export interface ExternalAssignment {
   moduleName: string;
@@ -142,11 +143,19 @@ function getLineNumber(source: string, position: number): number {
 }
 
 function parseMoonLoaderEvents(source: string, filePath: string): MoonLoaderEventInModuleWarning[] {
+  const stringSpans = findAllStringSpans(source);
+  const commentSpans = findAllCommentSpans(source, stringSpans);
+  const excludedRanges = [...stringSpans, ...commentSpans];
+
   const results: MoonLoaderEventInModuleWarning[] = [];
   const pattern = /\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
   let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(source)) !== null) {
+    if (isInsideRange(match.index, excludedRanges)) {
+      continue;
+    }
+
     const funcName = match[1];
     if (funcName && MOONLOADER_EVENTS.has(funcName)) {
       const beforeMatch = source.substring(Math.max(0, match.index - 50), match.index);
