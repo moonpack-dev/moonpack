@@ -36,8 +36,11 @@ moonpack watch
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | Output filename (without .lua) |
-| `version` | No | Included in bundle header |
+| `name` | Yes | Output filename and `script_name()` |
+| `version` | No | `script_version()` |
+| `author` | No | `script_author()` (string or array for `script_authors()`) |
+| `description` | No | `script_description()` |
+| `url` | No | `script_url()` |
 | `entry` | Yes | Entry point path |
 
 `moonpack.local.json` (personal, add to .gitignore):
@@ -69,11 +72,24 @@ Paths resolve to:
 
 ## Features
 
+**Script metadata**: Config fields are injected into the bundle header as MoonLoader script functions.
+
 **Auto-localization**: Functions in modules are automatically prefixed with `local`. Dotted functions like `sampev.onServerMessage` are preserved.
+
+**Dev mode flag**: Bundles include `local __DEV__ = true/false`. True in watch mode, false in build. Use for conditional debug code:
+
+```lua
+if __DEV__ then
+  print('[DEBUG] player data:', inspect(data))
+end
+```
 
 **Lint warnings**: Detects common issues during build:
 - Duplicate assignments to external module properties across files
-- MoonLoader events (`main`, `onScriptTerminate`, etc.) defined in modules instead of entry point
+- MoonLoader events (`main`, `onScriptTerminate`, etc.) in modules instead of entry point
+- Unused requires (`local x = require(...)` where `x` is never used)
+
+**Log tailing**: Watch mode tails `moonloader.log` and displays script output in the terminal.
 
 ## License
 
