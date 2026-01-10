@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.2.0...moonpack-v0.3.0) (2026-01-10)
+
+
+### Features
+
+* add __DEV__ flag for watch mode ([e29f86f](https://github.com/moonpack-dev/moonpack/commit/e29f86fe6931c558c2d24b77656d2a835917f0c8))
+* add unused require detection to linter ([c12e1be](https://github.com/moonpack-dev/moonpack/commit/c12e1beb9725c3e664e14faf20d3635216bd817b))
+
 ## [0.2.0](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.1.0...moonpack-v0.2.0) (2026-01-10)
 
 
