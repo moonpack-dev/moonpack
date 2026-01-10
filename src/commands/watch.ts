@@ -139,7 +139,7 @@ interface RunBuildResult extends BuildResult {
 
 async function runBuild(cwd: string): Promise<RunBuildResult> {
   try {
-    return await build({ cwd, silent: true });
+    return await build({ cwd, silent: true, dev: true });
   } catch (error) {
     return {
       success: false,

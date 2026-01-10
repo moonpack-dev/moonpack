@@ -5,15 +5,18 @@ import { autoLocalizeFunctions, transformRequiresToLoad } from './parser.ts';
 export interface GenerateOptions {
   graph: DependencyGraph;
   config: MoonpackConfig;
+  dev?: boolean;
 }
 
 /** Generates the final Lua bundle with module loader and all dependencies. */
 export function generateBundle(options: GenerateOptions): string {
-  const { graph, config } = options;
+  const { graph, config, dev = false } = options;
 
   const lines: string[] = [];
 
   lines.push(generateHeader(config));
+  lines.push('');
+  lines.push(`local __DEV__ = ${dev}`);
   lines.push('');
   lines.push(generateModuleLoader());
   lines.push('');

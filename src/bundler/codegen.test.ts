@@ -92,6 +92,28 @@ describe('generateBundle', () => {
     });
   });
 
+  describe('dev mode', () => {
+    test('sets __DEV__ to false by default', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const result = generateBundle({ graph, config: createMockConfig() });
+
+      expect(result).toContain('local __DEV__ = false');
+    });
+
+    test('sets __DEV__ to true when dev option is true', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const result = generateBundle({ graph, config: createMockConfig(), dev: true });
+
+      expect(result).toContain('local __DEV__ = true');
+    });
+  });
+
   describe('module wrapping', () => {
     test('wraps non-entry modules in __modules', () => {
       const modules = new Map<string, ModuleNode>();

@@ -29,10 +29,11 @@ export interface BuildResult {
 export interface BuildOptions {
   cwd: string;
   silent?: boolean;
+  dev?: boolean;
 }
 
 export async function build(options: BuildOptions): Promise<BuildResult> {
-  const { cwd, silent } = options;
+  const { cwd, silent, dev = false } = options;
   const startTime = performance.now();
   const spinner = silent ? null : ui.createSpinner();
 
@@ -93,7 +94,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
     });
   }
 
-  const bundle = generateBundle({ graph, config });
+  const bundle = generateBundle({ graph, config, dev });
 
   const outDir = isAbsolute(config.outDir) ? config.outDir : join(projectRoot, config.outDir);
   await ensureDirectory(outDir);
