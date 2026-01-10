@@ -84,6 +84,14 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
       line: dup.assignments[0]?.line,
     });
   }
+  for (const unused of lintResult.unusedRequires) {
+    issues.push({
+      type: 'warning',
+      message: `Unused require '${unused.varName}' from '${unused.moduleName}'`,
+      file: unused.filePath,
+      line: unused.line,
+    });
+  }
 
   const bundle = generateBundle({ graph, config });
 

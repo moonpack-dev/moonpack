@@ -20,9 +20,17 @@ export interface MoonLoaderEventInModuleWarning {
   line: number;
 }
 
+export interface UnusedRequireWarning {
+  varName: string;
+  moduleName: string;
+  filePath: string;
+  line: number;
+}
+
 export interface LintResult {
   duplicateAssignments: DuplicateAssignmentWarning[];
   moonloaderEventsInModules: MoonLoaderEventInModuleWarning[];
+  unusedRequires: UnusedRequireWarning[];
 }
 
 const MOONLOADER_EVENTS = new Set([
@@ -174,15 +182,104 @@ function parseMoonLoaderEvents(source: string, filePath: string): MoonLoaderEven
   return results;
 }
 
+interface RequireAssignment {
+  varName: string;
+  moduleName: string;
+  line: number;
+  endIndex: number;
+}
+
+function parseAllRequireAssignments(source: string): RequireAssignment[] {
+  const stringSpans = findAllStringSpans(source);
+  const commentSpans = findAllCommentSpans(source, stringSpans);
+  const excludedRanges = [...stringSpans, ...commentSpans];
+
+  const results: RequireAssignment[] = [];
+
+  for (const pattern of REQUIRE_ASSIGNMENT_PATTERNS) {
+    const regex = new RegExp(pattern.source, pattern.flags);
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(source)) !== null) {
+      if (isInsideRange(match.index, excludedRanges)) {
+        continue;
+      }
+
+      const varName = match[1];
+      const moduleName = match[3];
+
+      if (varName && moduleName) {
+        results.push({
+          varName,
+          moduleName,
+          line: getLineNumber(source, match.index),
+          endIndex: match.index + match[0].length,
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+function isVariableUsed(source: string, varName: string, assignmentEndIndex: number): boolean {
+  if (varName.startsWith('_')) {
+    return true;
+  }
+
+  const stringSpans = findAllStringSpans(source);
+  const commentSpans = findAllCommentSpans(source, stringSpans);
+  const excludedRanges = [...stringSpans, ...commentSpans];
+
+  const pattern = new RegExp(`\\b${escapeRegex(varName)}\\b`, 'g');
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(source)) !== null) {
+    if (match.index < assignmentEndIndex) {
+      continue;
+    }
+
+    if (isInsideRange(match.index, excludedRanges)) {
+      continue;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+function parseUnusedRequires(source: string, filePath: string): UnusedRequireWarning[] {
+  const assignments = parseAllRequireAssignments(source);
+  const results: UnusedRequireWarning[] = [];
+
+  for (const assignment of assignments) {
+    if (!isVariableUsed(source, assignment.varName, assignment.endIndex)) {
+      results.push({
+        varName: assignment.varName,
+        moduleName: assignment.moduleName,
+        filePath,
+        line: assignment.line,
+      });
+    }
+  }
+
+  return results;
+}
+
 /** Lints the dependency graph for common issues. */
 export function lintGraph(graph: DependencyGraph): LintResult {
   const allAssignments: ExternalAssignment[] = [];
   const moonloaderEventsInModules: MoonLoaderEventInModuleWarning[] = [];
+  const unusedRequires: UnusedRequireWarning[] = [];
 
   for (const [moduleName, node] of graph.modules) {
     const externalVars = parseExternalRequireAssignments(node.source);
     const assignments = parseExternalPropertyAssignments(node.source, node.filePath, externalVars);
     allAssignments.push(...assignments);
+
+    const unused = parseUnusedRequires(node.source, node.filePath);
+    unusedRequires.push(...unused);
 
     const isEntryPoint = moduleName === graph.entryPoint.moduleName;
     if (!isEntryPoint) {
@@ -208,7 +305,7 @@ export function lintGraph(graph: DependencyGraph): LintResult {
     }
   }
 
-  return { duplicateAssignments, moonloaderEventsInModules };
+  return { duplicateAssignments, moonloaderEventsInModules, unusedRequires };
 }
 
 export function formatLintWarnings(result: LintResult): string[] {
@@ -225,6 +322,12 @@ export function formatLintWarnings(result: LintResult): string[] {
   for (const event of result.moonloaderEventsInModules) {
     warnings.push(
       `MoonLoader event '${event.eventName}' in module has no effect (move to entry point): ${event.filePath}:${event.line}`
+    );
+  }
+
+  for (const unused of result.unusedRequires) {
+    warnings.push(
+      `Unused require '${unused.varName}' from '${unused.moduleName}': ${unused.filePath}:${unused.line}`
     );
   }
 

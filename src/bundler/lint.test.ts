@@ -340,6 +340,102 @@ end
   });
 });
 
+describe('lintUnusedRequires', () => {
+  test('detects unused require', () => {
+    const graph = createMockGraph([
+      {
+        name: 'main',
+        path: '/src/main.lua',
+        source: `local json = require('cjson')
+local utils = require('./utils')
+utils.doSomething()`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.unusedRequires).toHaveLength(1);
+    expect(result.unusedRequires[0].varName).toBe('json');
+    expect(result.unusedRequires[0].moduleName).toBe('cjson');
+  });
+
+  test('does not warn for used require', () => {
+    const graph = createMockGraph([
+      {
+        name: 'main',
+        path: '/src/main.lua',
+        source: `local json = require('cjson')
+local data = json.decode(str)`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.unusedRequires).toHaveLength(0);
+  });
+
+  test('does not warn for underscore-prefixed variables', () => {
+    const graph = createMockGraph([
+      {
+        name: 'main',
+        path: '/src/main.lua',
+        source: `local _unused = require('cjson')
+local _ = require('./utils')`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.unusedRequires).toHaveLength(0);
+  });
+
+  test('detects multiple unused requires', () => {
+    const graph = createMockGraph([
+      {
+        name: 'main',
+        path: '/src/main.lua',
+        source: `local json = require('cjson')
+local xml = require('xml')
+local yaml = require('yaml')`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.unusedRequires).toHaveLength(3);
+  });
+
+  test('does not count usage inside strings', () => {
+    const graph = createMockGraph([
+      {
+        name: 'main',
+        path: '/src/main.lua',
+        source: `local json = require('cjson')
+local str = "use json here"`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.unusedRequires).toHaveLength(1);
+  });
+
+  test('does not count usage inside comments', () => {
+    const graph = createMockGraph([
+      {
+        name: 'main',
+        path: '/src/main.lua',
+        source: `local json = require('cjson')
+-- json.decode(str)`,
+      },
+    ]);
+
+    const result = lintGraph(graph);
+
+    expect(result.unusedRequires).toHaveLength(1);
+  });
+});
+
 describe('formatLintWarnings', () => {
   test('formats duplicate warnings nicely', () => {
     const result = {
@@ -365,6 +461,7 @@ describe('formatLintWarnings', () => {
         },
       ],
       moonloaderEventsInModules: [],
+      unusedRequires: [],
     };
 
     const warnings = formatLintWarnings(result);
@@ -381,6 +478,7 @@ describe('formatLintWarnings', () => {
       moonloaderEventsInModules: [
         { eventName: 'onScriptTerminate', filePath: '/src/helpers.lua', line: 15 },
       ],
+      unusedRequires: [],
     };
 
     const warnings = formatLintWarnings(result);
@@ -415,10 +513,28 @@ describe('formatLintWarnings', () => {
         },
       ],
       moonloaderEventsInModules: [{ eventName: 'main', filePath: '/src/mod.lua', line: 5 }],
+      unusedRequires: [],
     };
 
     const warnings = formatLintWarnings(result);
 
     expect(warnings).toHaveLength(2);
+  });
+
+  test('formats unused require warnings', () => {
+    const result = {
+      duplicateAssignments: [],
+      moonloaderEventsInModules: [],
+      unusedRequires: [
+        { varName: 'json', moduleName: 'cjson', filePath: '/src/utils.lua', line: 3 },
+      ],
+    };
+
+    const warnings = formatLintWarnings(result);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("Unused require 'json'");
+    expect(warnings[0]).toContain("'cjson'");
+    expect(warnings[0]).toContain('/src/utils.lua:3');
   });
 });
