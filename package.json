@@ -24,7 +24,9 @@
     "moonpack": "./src/cli.ts"
   },
   "files": [
-    "src"
+    "src",
+    "!src/**/*.test.ts",
+    "!src/test-utils.ts"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
