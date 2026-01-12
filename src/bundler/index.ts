@@ -26,3 +26,11 @@ export {
   type LintResult,
   type MoonLoaderEventInModuleWarning,
 } from './lint.ts';
+export {
+  type BundleStats,
+  collectBundleStats,
+  type FormattedLine,
+  formatSize,
+  formatStatsLines,
+  type ModuleStats,
+} from './stats.ts';

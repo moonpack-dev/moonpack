@@ -1,8 +1,10 @@
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import {
   buildDependencyGraph,
+  collectBundleStats,
   type DependencyGraph,
-  formatLintWarnings,
+  formatSize,
+  formatStatsLines,
   generateBundle,
   lintGraph,
 } from '../bundler/index.ts';
@@ -61,12 +63,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
   spinner?.stop(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
 
   const lintResult = lintGraph(graph);
-  const warnings = formatLintWarnings(lintResult, projectRoot);
-  if (!silent) {
-    for (const warning of warnings) {
-      ui.warn(warning);
-    }
-  }
+  const stats = collectBundleStats(graph, lintResult, projectRoot);
 
   const toRelative = (filePath: string) => relative(projectRoot, filePath);
 
@@ -106,11 +103,29 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
 
   await writeTextFile(outputPath, bundle);
 
-  if (!silent) {
-    ui.step(`Output: ${config.outDir}/${outputFileName}`);
-  }
-
   const buildTimeMs = Math.round(performance.now() - startTime);
+  const bundleSize = Buffer.byteLength(bundle, 'utf8');
+
+  if (!silent) {
+    const lines = formatStatsLines(stats);
+    const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`;
+    const table = lines.map((l) => (l.hasWarning ? yellow(l.text) : l.text)).join('\n');
+    ui.message(table);
+
+    if (stats.externals.length > 0) {
+      ui.step(`External: ${stats.externals.join(', ')}`);
+    }
+
+    for (const mod of stats.modules) {
+      for (const warning of mod.warnings) {
+        ui.warn(`${mod.filePath}: ${warning}`);
+      }
+    }
+
+    ui.step(
+      `Output: ${config.outDir}/${outputFileName} (${formatSize(bundleSize)}, ${moduleCount} modules, ${buildTimeMs}ms)`
+    );
+  }
 
   return {
     success: true,
