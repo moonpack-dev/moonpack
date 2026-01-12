@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, join } from 'node:path';
+import { dirname, isAbsolute, join, relative } from 'node:path';
 import {
   buildDependencyGraph,
   type DependencyGraph,
@@ -61,19 +61,21 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
   spinner?.stop(`Resolved ${moduleCount} module${moduleCount === 1 ? '' : 's'}`);
 
   const lintResult = lintGraph(graph);
-  const warnings = formatLintWarnings(lintResult);
+  const warnings = formatLintWarnings(lintResult, projectRoot);
   if (!silent) {
     for (const warning of warnings) {
       ui.warn(warning);
     }
   }
 
+  const toRelative = (filePath: string) => relative(projectRoot, filePath);
+
   const issues: BuildIssue[] = [];
   for (const event of lintResult.moonloaderEventsInModules) {
     issues.push({
       type: 'warning',
       message: `MoonLoader event '${event.eventName}' in module has no effect`,
-      file: event.filePath,
+      file: toRelative(event.filePath),
       line: event.line,
     });
   }
@@ -81,7 +83,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
     issues.push({
       type: 'warning',
       message: `Duplicate assignment to '${dup.propertyPath}'`,
-      file: dup.assignments[0]?.filePath,
+      file: dup.assignments[0] ? toRelative(dup.assignments[0].filePath) : undefined,
       line: dup.assignments[0]?.line,
     });
   }
@@ -89,7 +91,7 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
     issues.push({
       type: 'warning',
       message: `Unused require '${unused.varName}' from '${unused.moduleName}'`,
-      file: unused.filePath,
+      file: toRelative(unused.filePath),
       line: unused.line,
     });
   }

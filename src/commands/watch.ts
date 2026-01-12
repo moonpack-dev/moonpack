@@ -98,8 +98,6 @@ export async function watchProject(options: WatchOptions): Promise<void> {
     ui.info('Tailing moonloader.log');
   }
 
-  ui.step(`Watching ${sourceDir}`);
-
   let debounce: Timer | null = null;
   const watcher = watch(sourceDir, { recursive: true }, (_event, filename) => {
     if (!filename?.endsWith('.lua')) return;

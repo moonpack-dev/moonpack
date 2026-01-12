@@ -308,11 +308,21 @@ export function lintGraph(graph: DependencyGraph): LintResult {
   return { duplicateAssignments, moonloaderEventsInModules, unusedRequires };
 }
 
-export function formatLintWarnings(result: LintResult): string[] {
+function toRelativePath(filePath: string, projectRoot: string): string {
+  if (filePath.startsWith(projectRoot)) {
+    const relative = filePath.slice(projectRoot.length);
+    return relative.startsWith('/') ? relative.slice(1) : relative;
+  }
+  return filePath;
+}
+
+export function formatLintWarnings(result: LintResult, projectRoot: string): string[] {
   const warnings: string[] = [];
 
   for (const dup of result.duplicateAssignments) {
-    const locations = dup.assignments.map((a) => `  - ${a.filePath}:${a.line}`).join('\n');
+    const locations = dup.assignments
+      .map((a) => `  - ${toRelativePath(a.filePath, projectRoot)}:${a.line}`)
+      .join('\n');
 
     warnings.push(
       `Duplicate assignment to '${dup.propertyPath}' - last definition wins:\n${locations}`
@@ -321,13 +331,13 @@ export function formatLintWarnings(result: LintResult): string[] {
 
   for (const event of result.moonloaderEventsInModules) {
     warnings.push(
-      `MoonLoader event '${event.eventName}' in module has no effect (move to entry point): ${event.filePath}:${event.line}`
+      `MoonLoader event '${event.eventName}' in module has no effect (move to entry point): ${toRelativePath(event.filePath, projectRoot)}:${event.line}`
     );
   }
 
   for (const unused of result.unusedRequires) {
     warnings.push(
-      `Unused require '${unused.varName}' from '${unused.moduleName}': ${unused.filePath}:${unused.line}`
+      `Unused require '${unused.varName}' from '${unused.moduleName}': ${toRelativePath(unused.filePath, projectRoot)}:${unused.line}`
     );
   }
 

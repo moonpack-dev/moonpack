@@ -464,12 +464,12 @@ describe('formatLintWarnings', () => {
       unusedRequires: [],
     };
 
-    const warnings = formatLintWarnings(result);
+    const warnings = formatLintWarnings(result, '/');
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('sampev.onServerMessage');
-    expect(warnings[0]).toContain('/src/main.lua:10');
-    expect(warnings[0]).toContain('/src/chat.lua:5');
+    expect(warnings[0]).toContain('src/main.lua:10');
+    expect(warnings[0]).toContain('src/chat.lua:5');
   });
 
   test('formats MoonLoader event warnings', () => {
@@ -481,11 +481,11 @@ describe('formatLintWarnings', () => {
       unusedRequires: [],
     };
 
-    const warnings = formatLintWarnings(result);
+    const warnings = formatLintWarnings(result, '/');
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('onScriptTerminate');
-    expect(warnings[0]).toContain('/src/helpers.lua:15');
+    expect(warnings[0]).toContain('src/helpers.lua:15');
     expect(warnings[0]).toContain('has no effect');
   });
 
@@ -516,7 +516,7 @@ describe('formatLintWarnings', () => {
       unusedRequires: [],
     };
 
-    const warnings = formatLintWarnings(result);
+    const warnings = formatLintWarnings(result, '/');
 
     expect(warnings).toHaveLength(2);
   });
@@ -530,11 +530,11 @@ describe('formatLintWarnings', () => {
       ],
     };
 
-    const warnings = formatLintWarnings(result);
+    const warnings = formatLintWarnings(result, '/');
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("Unused require 'json'");
     expect(warnings[0]).toContain("'cjson'");
-    expect(warnings[0]).toContain('/src/utils.lua:3');
+    expect(warnings[0]).toContain('src/utils.lua:3');
   });
 });
