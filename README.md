@@ -38,9 +38,9 @@ moonpack init
 ```
 
 This creates:
-- `moonpack.json` — project config (commit this)
-- `moonpack.local.json` — your local paths (gitignored)
-- `src/main.lua` — entry point
+- `moonpack.json` - project config (commit this)
+- `moonpack.local.json` - your local paths (gitignored)
+- `src/main.lua` - entry point
 
 ### 2. Build
 
@@ -62,7 +62,7 @@ Watches for changes, rebuilds instantly, and hot-reloads the script in-game. Als
 
 ### moonpack.json
 
-Shared config — commit this to your repo.
+Shared config - commit this to your repo.
 
 ```json
 {
@@ -78,13 +78,13 @@ Shared config — commit this to your repo.
 | `name` | Yes | Output filename and `script_name()` |
 | `entry` | Yes | Entry point path |
 | `version` | No | `script_version()` |
-| `author` | No | `script_author()` — use array for multiple authors |
+| `author` | No | `script_author()` - use array for multiple authors |
 | `description` | No | `script_description()` |
 | `url` | No | `script_url()` |
 
 ### moonpack.local.json
 
-Machine-specific config — add to `.gitignore`.
+Machine-specific config - add to `.gitignore`.
 
 ```json
 {
@@ -139,7 +139,7 @@ If `./utils.lua` doesn't exist, moonpack looks for `./utils/init.lua`.
 
 ### Dev mode flag
 
-Bundles include a `__DEV__` variable — `true` in watch mode, `false` in build.
+Bundles include a `__DEV__` variable - `true` in watch mode, `false` in build.
 
 ```lua
 if __DEV__ then
@@ -172,9 +172,9 @@ MoonLoader callbacks like `sampev.onServerMessage` are preserved.
 
 moonpack warns you about common issues:
 
-- **Duplicate handlers** — Multiple files assigning to the same `sampev.onX` handler
-- **Misplaced events** — MoonLoader events (`main`, `onScriptTerminate`, etc.) in modules instead of entry point
-- **Unused requires** — `local x = require(...)` where `x` is never used
+- **Duplicate handlers** - multiple files assigning to the same `sampev.onX` handler
+- **Misplaced events** - MoonLoader events (`main`, `onScriptTerminate`, etc.) in modules instead of entry point
+- **Unused requires** - `local x = require(...)` where `x` is never used
 
 ### Script metadata
 
@@ -226,8 +226,33 @@ Modules are wrapped in functions and loaded on-demand. External requires fall th
 
 ## Limitations
 
-- **No circular dependencies** — moonpack will error if modules depend on each other in a cycle
-- **Path-based requires only** — use `./` or `../` for local modules
+- **No circular dependencies** - moonpack will error if modules depend on each other in a cycle
+- **Path-based requires only** - use `./` or `../` for local modules
+
+## Comparison
+
+How does moonpack compare to other Lua bundlers?
+
+| Feature | moonpack | [luapack](https://github.com/le0developer/luapack) | [luabundler](https://github.com/Benjamin-Dobell/luabundler) |
+|---------|----------|---------|------------|
+| **Focus** | MoonLoader scripts | General Lua | General Lua |
+| **Runtime** | Bun | Lua | Node.js |
+| **Config file** | ✓ | ✗ | ✗ |
+| **Watch mode** | ✓ | ✗ | ✗ |
+| **Hot-reload** | ✓ | ✗ | ✗ |
+| **Log tailing** | ✓ | ✗ | ✗ |
+| **Linting** | ✓ | ✗ | ✗ |
+| **Minification** | ✗ | ✓ | ✗ |
+| **Unbundle** | ✗ | ✗ | ✓ |
+| **Plugin system** | ✗ | ✓ | ✗ |
+| **Auto-localization** | ✓ | ✗ | ✗ |
+| **Script metadata** | ✓ | ✗ | ✗ |
+
+**moonpack** is purpose-built for MoonLoader development with watch mode, hot-reload, and lint warnings for common script issues.
+
+**luapack** is a general-purpose Lua bundler with minification and a plugin system for different Lua dialects (YueScript, MoonScript).
+
+**luabundler** is a CLI tool that can both bundle and unbundle Lua files, useful for debugging or modifying existing bundles.
 
 ## License
 
