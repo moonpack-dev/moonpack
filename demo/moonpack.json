@@ -1,0 +1,6 @@
+{
+  "name": "DemoScript",
+  "version": "1.0.0",
+  "author": "Developer",
+  "entry": "src/main.lua"
+}

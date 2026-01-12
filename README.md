@@ -1,6 +1,25 @@
-# moonpack
+<p align="center">
+  <img src="assets/logo.svg" alt="moonpack" width="120" />
+</p>
 
-Lua bundler for MoonLoader scripts. Combines multiple source files into a single distributable script.
+<h1 align="center">moonpack</h1>
+
+<p align="center">
+  Lua bundler for MoonLoader scripts.<br/>
+  Split your code into modules, bundle into a single file.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/moonpack"><img src="https://img.shields.io/npm/v/moonpack" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/moonpack"><img src="https://img.shields.io/npm/dm/moonpack" alt="npm downloads" /></a>
+  <a href="https://github.com/user/moonpack/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/moonpack" alt="license" /></a>
+</p>
+
+---
+
+<p align="center">
+  <img src="assets/demo-build.gif" alt="moonpack build demo" />
+</p>
 
 ## Installation
 
@@ -12,84 +31,203 @@ bun install -g moonpack
 
 ## Quick Start
 
+### 1. Initialize a project
+
 ```bash
 moonpack init
 ```
 
-This creates `moonpack.json`, `moonpack.local.json`, `.gitignore`, and `src/main.lua`.
+This creates:
+- `moonpack.json` — project config (commit this)
+- `moonpack.local.json` — your local paths (gitignored)
+- `src/main.lua` — entry point
 
-Build:
+### 2. Build
 
 ```bash
 moonpack build
 ```
 
-Watch mode with hot-reload:
+Bundles all your modules into a single `YourScript.lua` file.
+
+### 3. Watch mode
 
 ```bash
 moonpack watch
 ```
 
-## Config
+Watches for changes, rebuilds instantly, and hot-reloads the script in-game. Also tails `moonloader.log` so you see script output right in your terminal.
 
-`moonpack.json` (shared, commit to git):
+## Configuration
+
+### moonpack.json
+
+Shared config — commit this to your repo.
+
+```json
+{
+  "name": "MyScript",
+  "version": "1.0.0",
+  "author": "YourName",
+  "entry": "src/main.lua"
+}
+```
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | Output filename and `script_name()` |
+| `entry` | Yes | Entry point path |
 | `version` | No | `script_version()` |
-| `author` | No | `script_author()` (string or array for `script_authors()`) |
+| `author` | No | `script_author()` — use array for multiple authors |
 | `description` | No | `script_description()` |
 | `url` | No | `script_url()` |
-| `entry` | Yes | Entry point path |
 
-`moonpack.local.json` (personal, add to .gitignore):
+### moonpack.local.json
 
-| Field | Description |
-|-------|-------------|
-| `outDir` | Output directory (default: `dist`) |
+Machine-specific config — add to `.gitignore`.
 
-The local config overrides the shared config, useful for machine-specific paths like your MoonLoader directory.
-
-## Module Resolution
-
-Path-based requires are bundled, non-path requires are left alone:
-
-```lua
--- Bundled (local modules)
-require('./utils')           -- same directory
-require('./core/config')     -- subdirectory
-require('../shared/lib')     -- parent directory
-
--- Not bundled (external/system)
-require('lib.samp.events')   -- left as require()
-require('mimgui')            -- left as require()
+```json
+{
+  "outDir": "C:/Games/GTA SA/moonloader"
+}
 ```
 
-Paths resolve to:
-1. `./utils` → `src/utils.lua`
-2. `./utils` → `src/utils/init.lua` (if no .lua file)
+Set `outDir` to your MoonLoader folder for hot-reload to work.
 
-## Features
+## Writing Modules
 
-**Script metadata**: Config fields are injected into the bundle header as MoonLoader script functions.
-
-**Auto-localization**: Functions in modules are automatically prefixed with `local`. Dotted functions like `sampev.onServerMessage` are preserved.
-
-**Dev mode flag**: Bundles include `local __DEV__ = true/false`. True in watch mode, false in build. Use for conditional debug code:
+Use relative paths to import local modules:
 
 ```lua
-if __DEV__ then
-  print('[DEBUG] player data:', inspect(data))
+-- src/main.lua
+local utils = require('./utils')
+local player = require('./core/player')
+
+function main()
+    utils.log('Script loaded!')
 end
 ```
 
-**Lint warnings**: Detects common issues during build:
-- Duplicate assignments to external module properties across files
-- MoonLoader events (`main`, `onScriptTerminate`, etc.) in modules instead of entry point
-- Unused requires (`local x = require(...)` where `x` is never used)
+```lua
+-- src/utils.lua
+local M = {}
 
-**Log tailing**: Watch mode tails `moonloader.log` and displays script output in the terminal.
+function M.log(msg)
+    print('[MyScript] ' .. msg)
+end
+
+return M
+```
+
+### What gets bundled
+
+| Require | Bundled? | Result |
+|---------|----------|--------|
+| `require('./utils')` | Yes | Included in bundle |
+| `require('./core/player')` | Yes | Included in bundle |
+| `require('../shared/lib')` | Yes | Included in bundle |
+| `require('lib.samp.events')` | No | Left as-is |
+| `require('mimgui')` | No | Left as-is |
+
+**Rule:** Paths starting with `./` or `../` are bundled. Everything else is left alone.
+
+### Directory modules
+
+If `./utils.lua` doesn't exist, moonpack looks for `./utils/init.lua`.
+
+## Features
+
+### Dev mode flag
+
+Bundles include a `__DEV__` variable — `true` in watch mode, `false` in build.
+
+```lua
+if __DEV__ then
+    print('[DEBUG] player:', inspect(player))
+end
+```
+
+### Auto-localization
+
+Functions in modules are automatically made `local`. This:
+
+```lua
+-- src/utils.lua
+function helper()
+    -- ...
+end
+```
+
+Becomes:
+
+```lua
+local function helper()
+    -- ...
+end
+```
+
+MoonLoader callbacks like `sampev.onServerMessage` are preserved.
+
+### Lint warnings
+
+moonpack warns you about common issues:
+
+- **Duplicate handlers** — Multiple files assigning to the same `sampev.onX` handler
+- **Misplaced events** — MoonLoader events (`main`, `onScriptTerminate`, etc.) in modules instead of entry point
+- **Unused requires** — `local x = require(...)` where `x` is never used
+
+### Script metadata
+
+Config fields are injected into your bundle:
+
+```lua
+script_name('MyScript')
+script_version('1.0.0')
+script_author('YourName')
+```
+
+## Bundle Output
+
+The bundled file looks like this:
+
+```lua
+-- MyScript v1.0.0
+-- Built with moonpack
+
+local __DEV__ = false
+local __modules = {}
+local __loaded = {}
+
+local function __load(name)
+    if __loaded[name] then return __loaded[name] end
+    if __modules[name] then
+        __loaded[name] = __modules[name]()
+        return __loaded[name]
+    end
+    return require(name)
+end
+
+__modules["utils"] = function()
+    -- utils.lua
+    local M = {}
+    -- ...
+    return M
+end
+
+-- main.lua
+local utils = __load('utils')
+
+function main()
+    -- ...
+end
+```
+
+Modules are wrapped in functions and loaded on-demand. External requires fall through to the standard `require()`.
+
+## Limitations
+
+- **No circular dependencies** — moonpack will error if modules depend on each other in a cycle
+- **Path-based requires only** — use `./` or `../` for local modules
 
 ## License
 
