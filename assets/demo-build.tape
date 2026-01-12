@@ -6,8 +6,9 @@ Output ../assets/demo-build.gif
 Set Shell "bash"
 Set FontSize 14
 Set Width 600
-Set Height 240
+Set Height 270
 Set Theme "Catppuccin Mocha"
+Set WindowBar Colorful
 Set Padding 16
 Set Framerate 60
 
