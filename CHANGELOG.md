@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.3.0...moonpack-v0.3.1) (2026-01-12)
+
+
+### Bug Fixes
+
+* make cli.ts executable ([5477243](https://github.com/moonpack-dev/moonpack/commit/5477243c8de14babca92aedf0cdcbd7ab1c7e0b9))
+* show relative paths in lint warnings ([f62c2f0](https://github.com/moonpack-dev/moonpack/commit/f62c2f0ffbaa98f0e188fd843b25be5ed8ee6638))
+
 ## [0.3.0](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.2.0...moonpack-v0.3.0) (2026-01-10)
 
 
