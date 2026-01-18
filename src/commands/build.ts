@@ -9,6 +9,7 @@ import {
   lintGraph,
 } from '../bundler/index.ts';
 import { loadConfig } from '../config/loader.ts';
+import { normalizeDependencies } from '../deps/index.ts';
 import { ensureDirectory, writeTextFile } from '../utils/fs.ts';
 import * as ui from '../utils/ui.ts';
 
@@ -45,6 +46,10 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
 
   const entryPath = join(projectRoot, config.entry);
   const sourceRoot = dirname(entryPath);
+
+  const hooksPath = join(sourceRoot, 'moonpack.hooks.lua');
+  const hooksFile = Bun.file(hooksPath);
+  const hooksSource = (await hooksFile.exists()) ? await hooksFile.text() : undefined;
 
   spinner?.start(`Building ${config.name}`);
 
@@ -93,7 +98,16 @@ export async function build(options: BuildOptions): Promise<BuildResult> {
     });
   }
 
-  const bundle = generateBundle({ graph, config, dev });
+  const flatDeps = config.dependencies ? normalizeDependencies(config.dependencies) : {};
+  const hasDeps = Object.keys(flatDeps).length > 0;
+
+  const bundle = generateBundle({
+    graph,
+    config,
+    dev,
+    ...(hasDeps && { flatDeps }),
+    ...(hooksSource && { hooksSource }),
+  });
 
   const outDir = isAbsolute(config.outDir) ? config.outDir : join(projectRoot, config.outDir);
   await ensureDirectory(outDir);

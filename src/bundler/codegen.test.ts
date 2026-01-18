@@ -342,4 +342,149 @@ describe('generateBundle', () => {
       expect(result).not.toContain('__modules["main"]');
     });
   });
+
+  describe('dependency runtime', () => {
+    test('injects runtime when flatDeps is provided', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig({
+        ui: { color: 'FF0000' },
+      });
+      const flatDeps = { 'lib/requests.lua': 'https://example.com/requests.lua' };
+
+      const result = generateBundle({ graph, config, flatDeps });
+
+      expect(result).toContain('local __mp = {');
+      expect(result).toContain('deps = {');
+      expect(result).toContain('["lib/requests.lua"] = "https://example.com/requests.lua"');
+      expect(result).toContain('ui = { color = "FF0000" }');
+    });
+
+    test('does not inject runtime when no flatDeps', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+
+      const result = generateBundle({ graph, config });
+
+      expect(result).not.toContain('local __mp = {');
+      expect(result).not.toContain('__mp.setup()');
+    });
+
+    test('does not inject runtime when flatDeps is empty', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = {};
+
+      const result = generateBundle({ graph, config, flatDeps });
+
+      expect(result).not.toContain('local __mp = {');
+    });
+
+    test('wraps main() to run setup before user code', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = { 'lib/test.lua': 'https://example.com/test.lua' };
+
+      const result = generateBundle({ graph, config, flatDeps });
+
+      expect(result).toContain('local __original_main = main');
+      expect(result).toContain('function main()');
+      expect(result).toContain('if not __mp.setup() then return end');
+      expect(result).toContain('return __original_main()');
+    });
+
+    test('uses default color when ui.color not specified', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = { 'lib/test.lua': 'https://example.com/test.lua' };
+
+      const result = generateBundle({ graph, config, flatDeps });
+
+      expect(result).toContain('ui = { color = "FFAA00" }');
+    });
+
+    test('includes multiple dependencies', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = {
+        'lib/requests.lua': 'https://example.com/requests.lua',
+        'lib/samp/events.lua': 'https://example.com/samp/events.lua',
+      };
+
+      const result = generateBundle({ graph, config, flatDeps });
+
+      expect(result).toContain('["lib/requests.lua"] = "https://example.com/requests.lua"');
+      expect(result).toContain('["lib/samp/events.lua"] = "https://example.com/samp/events.lua"');
+    });
+
+    test('includes hooks when hooksSource is provided', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = { 'lib/test.lua': 'https://example.com/test.lua' };
+      const hooksSource = `return {
+    onProgress = function(current, total, file)
+        print("Downloading: " .. file)
+    end
+}`;
+
+      const result = generateBundle({ graph, config, flatDeps, hooksSource });
+
+      expect(result).toContain('local __mp_hooks = (function()');
+      expect(result).toContain('onProgress = function(current, total, file)');
+      expect(result).toContain('if __mp_hooks then');
+      expect(result).toContain(
+        'if __mp_hooks.onProgress then __mp.onProgress = __mp_hooks.onProgress end'
+      );
+    });
+
+    test('does not include hooks when hooksSource is not provided', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = { 'lib/test.lua': 'https://example.com/test.lua' };
+
+      const result = generateBundle({ graph, config, flatDeps });
+
+      expect(result).not.toContain('local __mp_hooks');
+      expect(result).not.toContain('__mp_hooks.onProgress');
+    });
+
+    test('hooks are applied before setup is called', () => {
+      const modules = new Map<string, ModuleNode>();
+      modules.set('main', createMockNode('main', "print('hello')"));
+
+      const graph = createMockGraph('main', modules, ['main']);
+      const config = createMockConfig();
+      const flatDeps = { 'lib/test.lua': 'https://example.com/test.lua' };
+      const hooksSource = 'return { onReady = function() end }';
+
+      const result = generateBundle({ graph, config, flatDeps, hooksSource });
+
+      const hooksIndex = result.indexOf('local __mp_hooks');
+      const setupIndex = result.indexOf('if not __mp.setup()');
+      expect(hooksIndex).toBeLessThan(setupIndex);
+    });
+  });
 });

@@ -2,6 +2,7 @@
 import packageJson from '../package.json';
 import { build } from './commands/build.ts';
 import { initProject } from './commands/init.ts';
+import { install } from './commands/install.ts';
 import { watchProject } from './commands/watch.ts';
 import { formatError, MoonpackError } from './utils/errors.ts';
 import * as ui from './utils/ui.ts';
@@ -26,6 +27,8 @@ async function main(): Promise<void> {
     await runBuild();
   } else if (command === 'watch') {
     await runWatch();
+  } else if (command === 'install') {
+    await runInstall();
   } else {
     ui.error(`Unknown command: ${command}`);
     ui.message('Run "moonpack help" for usage information.');
@@ -43,6 +46,7 @@ function printHelp(): void {
       'init     Create a new moonpack project',
       'build    Bundle your Lua modules into one file',
       'watch    Rebuild on file changes with hot-reload',
+      'install  Download dependencies to outDir',
     ].join('\n'),
     'Commands'
   );
@@ -97,6 +101,26 @@ async function runInit(): Promise<void> {
   } catch (error) {
     ui.error(formatError(error));
     ui.outro('Init failed');
+    process.exit(1);
+  }
+}
+
+async function runInstall(): Promise<void> {
+  ui.intro('moonpack install');
+
+  try {
+    const result = await install({ cwd: process.cwd() });
+
+    if (result.success) {
+      ui.outro('Installation completed!');
+      process.exit(0);
+    } else {
+      ui.outro('Installation completed with errors');
+      process.exit(1);
+    }
+  } catch (error) {
+    ui.error(formatError(error));
+    ui.outro('Install failed');
     process.exit(1);
   }
 }
