@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.3.1...moonpack-v0.4.0) (2026-01-18)
+
+
+### Features
+
+* add build stats with module sizes and warnings ([1760dad](https://github.com/moonpack-dev/moonpack/commit/1760dad247b011ec7169a856420219105da04157))
+* add runtime dependency management system ([ecfb760](https://github.com/moonpack-dev/moonpack/commit/ecfb760aec1647e74e833e6e198f6c0e72d1edd3))
+
 ## [0.3.1](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.3.0...moonpack-v0.3.1) (2026-01-12)
 
 
