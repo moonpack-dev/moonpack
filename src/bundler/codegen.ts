@@ -163,6 +163,8 @@ local __mp_LOCK_POLL_MS = 100
 local __mp_DOWNLOAD_CHAIN_MS = 50
 local __mp_ERROR_RETRY_MS = 100
 local __mp_PRE_RELOAD_MS = 500
+local __mp_SIZE_TOLERANCE_BYTES = 100
+local __mp_SIZE_TOLERANCE_PERCENT = 0.01
 
 pcall(function() __mp_lfs = require("lfs") end)
 
@@ -243,6 +245,13 @@ function __mp.getFileSize(path)
     local size = f:seek("end")
     f:close()
     return size
+end
+
+function __mp.sizesMatch(a, b)
+    if not a or not b then return false end
+    local diff = math.abs(a - b)
+    local threshold = math.max(__mp_SIZE_TOLERANCE_BYTES, math.floor(a * __mp_SIZE_TOLERANCE_PERCENT))
+    return diff <= threshold
 end
 
 function __mp.loadManifest()
@@ -546,8 +555,8 @@ function __mp.setup()
                 local tempSize = __mp.getFileSize(tempPath)
                 local targetSize = __mp.getFileSize(targetPath)
 
-                if tempSize and targetSize and tempSize == targetSize then
-                    manifest[path] = tempSize
+                if __mp.sizesMatch(tempSize, targetSize) then
+                    manifest[path] = targetSize
                     os.remove(tempPath)
                 else
                     table.insert(conflicts, { path = path, tempPath = tempPath, targetPath = targetPath, tempSize = tempSize, targetSize = targetSize })
