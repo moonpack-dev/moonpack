@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.4.0...moonpack-v0.4.1) (2026-02-03)
+
+
+### Bug Fixes
+
+* add size tolerance to prevent repeated conflict prompts ([107f860](https://github.com/moonpack-dev/moonpack/commit/107f8609ed0a49aaf186e67080a7bd35be712f39))
+
 ## [0.4.0](https://github.com/moonpack-dev/moonpack/compare/moonpack-v0.3.1...moonpack-v0.4.0) (2026-01-18)
 
 
