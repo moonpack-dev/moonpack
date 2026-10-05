@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   if (command === 'init') {
     await runInit();
   } else if (command === 'build') {
-    await runBuild();
+    await runBuild(args.slice(1));
   } else if (command === 'watch') {
     await runWatch();
   } else if (command === 'install') {
@@ -44,7 +44,7 @@ function printHelp(): void {
   ui.note(
     [
       'init     Create a new moonpack project',
-      'build    Bundle your Lua modules into one file',
+      'build    Bundle your Lua modules into one file (--dev sets __DEV__ = true)',
       'watch    Rebuild on file changes with hot-reload',
       'install  Download dependencies to outDir',
     ].join('\n'),
@@ -54,11 +54,12 @@ function printHelp(): void {
   ui.outro('Run moonpack <command> to get started');
 }
 
-async function runBuild(): Promise<void> {
-  ui.intro('moonpack build');
+async function runBuild(args: string[]): Promise<void> {
+  const dev = args.includes('--dev');
+  ui.intro(dev ? 'moonpack build (dev)' : 'moonpack build');
 
   try {
-    const result = await build({ cwd: process.cwd() });
+    const result = await build({ cwd: process.cwd(), dev });
 
     if (result.success) {
       ui.outro('Build completed!');
