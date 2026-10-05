@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 export interface TempDir {
   path: string;
@@ -24,7 +24,7 @@ export interface FileStructure {
 export async function createFileStructure(baseDir: string, files: FileStructure): Promise<void> {
   for (const [relativePath, content] of Object.entries(files)) {
     const fullPath = join(baseDir, relativePath);
-    const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+    const dir = dirname(fullPath);
     await mkdir(dir, { recursive: true });
     await writeFile(fullPath, content);
   }

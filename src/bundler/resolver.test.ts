@@ -45,7 +45,7 @@ describe('resolveModulePath', () => {
       const result = await resolveModulePath('./core/config', context);
       expect(result.resolved).not.toBeNull();
       expect(result.resolved!.moduleName).toBe('core/config');
-      expect(result.resolved!.filePath).toContain('core/config.lua');
+      expect(result.resolved!.filePath).toContain(join('core', 'config.lua'));
     });
 
     test('resolves ../module from nested file', async () => {
@@ -85,7 +85,7 @@ describe('resolveModulePath', () => {
       const result = await resolveModulePath('./mymodule', context);
       expect(result.resolved).not.toBeNull();
       expect(result.resolved!.moduleName).toBe('mymodule');
-      expect(result.resolved!.filePath).toContain('mymodule/init.lua');
+      expect(result.resolved!.filePath).toContain(join('mymodule', 'init.lua'));
     });
 
     test('prefers direct .lua file over init.lua', async () => {
